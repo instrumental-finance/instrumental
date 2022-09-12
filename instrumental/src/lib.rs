@@ -28,7 +28,7 @@
 //! - Mosaic Pallet: Instrumental speaks to the Mosaic pallet which then redirects calls to the
 //!   Instrumental pallet.
 //!
-//! - [`Vault Pallet`](../pallet_vault/index.html): Each asset supported by this pallet will have an
+//! - [`Vault Pallet`](../composable_traits/vault/index.html): Each asset supported by this pallet will have an
 //!   underlying vault. Each vault will have an associated strategy that will dictate where those
 //!   assets will go in order to earn yield.
 //!
@@ -56,7 +56,7 @@
 //!
 //! ## Related Modules
 //!
-//! - [`Vault Pallet`](../pallet_vault/index.html)
+//! - [`Vault Pallet`](../composable_traits/vault/index.html)
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(
