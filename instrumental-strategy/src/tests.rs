@@ -1,6 +1,6 @@
-use composable_traits::instrumental::InstrumentalProtocolStrategy;
 use frame_support::{assert_noop, assert_ok};
 use primitives::currency::CurrencyId;
+use traits::instrumental::InstrumentalProtocolStrategy;
 
 use crate::mock::runtime::{
 	ExtBuilder, InstrumentalStrategy, MockRuntime, PabloStrategy, VaultId, MAX_ASSOCIATED_VAULTS,

@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 
 use composable_support::validation::Validate;
-use composable_traits::instrumental::InstrumentalVaultConfig;
 use sp_runtime::Perquintill;
+use traits::instrumental::InstrumentalVaultConfig;
 
 use crate::pallet::{AssetVault, Config, InstrumentalVaultConfigFor};
 

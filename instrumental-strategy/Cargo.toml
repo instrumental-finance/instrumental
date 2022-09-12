@@ -1,7 +1,9 @@
 [package]
-name = "instrumental-strategy"
-version = "0.1.0"
+name = "pallet-instrumental-strategy"
 authors = ["Kevin@composable.finance", "Composable Developers"]
+description = "TBD"
+version = "0.1.0"
+license = "Unlicense"
 homepage = "https://instrumental.finance"
 edition = "2021"
 
@@ -9,41 +11,45 @@ edition = "2021"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-codec = { default-features = false, package = "parity-scale-codec", version = "3.0.0", features = ["derive",] }
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
-frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
-scale-info = { version = "2.1.2", default-features = false, features = ["derive",] }
-sp-arithmetic = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
-sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
-sp-std = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
+codec = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+scale-info = { version = "2", default-features = false, features = ["derive"] }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
 
-composable-traits = { version = "0.0.1", path = "../composable-traits", default-features = false }
+composable-traits = { git = "https://github.com/composableFi/composable", rev = "08fc9fe3", default-features = false }
 
-log = { version = "0.4.14", default-features = false }
-serde = { version = '1', optional = true }
+log = { version = "0.4", default-features = false }
+serde = { version = "1", optional = true }
+
+traits = { path = "../traits", default-features = false }
 
 [dev-dependencies]
-orml-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", rev = "377213f750755cc48e80a3131eaae63b5eda8362", default-features = false }
-orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", rev = "377213f750755cc48e80a3131eaae63b5eda8362", default-features = false }
+orml-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", rev = "377213f7", default-features = false }
+orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", rev = "377213f7", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
 pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
 
-instrumental-strategy-pablo = { version = "0.1.0", path = "../instrumental-strategy-pablo", default-features = false }
-pallet-assets = { path = "../assets", default-features = false }
-pallet-currency-factory = { path = "../currency-factory", default-features = false }
-pallet-governance-registry = { path = "../governance-registry", default-features = false }
-pallet-pablo = { path = "../pablo", default-features = false }
-pallet-staking-rewards = { path = "../staking-rewards", default-features = false }
-pallet-vault = { path = "../vault", default-features = false }
-primitives = { path = "../../runtime/primitives", default-features = false }
+pallet-assets = { git = "https://github.com/composableFi/composable", rev = "08fc9fe3", default-features = false }
+pallet-currency-factory = { git = "https://github.com/composableFi/composable", rev = "08fc9fe3", default-features = false }
+pallet-governance-registry = { git = "https://github.com/composableFi/composable", rev = "08fc9fe3", default-features = false }
+pallet-pablo = { git = "https://github.com/composableFi/composable", rev = "08fc9fe3", default-features = false }
+pallet-staking-rewards = { git = "https://github.com/composableFi/composable", rev = "08fc9fe3", default-features = false }
+pallet-vault = { git = "https://github.com/composableFi/composable", rev = "08fc9fe3", default-features = false }
+primitives = { git = "https://github.com/composableFi/composable", rev = "08fc9fe3", default-features = false }
+
+pallet-instrumental-strategy-pablo = { path = "../instrumental-strategy-pablo", default-features = false }
 
 [features]
 default = ["std"]
 std = [
     "codec/std",
+    "composable-traits/std",
     "frame-support/std",
     "frame-system/std",
     "log/std",
@@ -63,5 +69,5 @@ std = [
 runtime-benchmarks = [
   "frame-support/runtime-benchmarks",
   "frame-system/runtime-benchmarks",
-  "pallet-collective/runtime-benchmarks"
+  "pallet-collective/runtime-benchmarks",
 ]

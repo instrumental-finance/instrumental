@@ -15,7 +15,7 @@ use sp_runtime::{
 };
 
 use super::fnft;
-use crate as instrumental_strategy_pablo;
+use crate as pallet_instrumental_strategy_pablo;
 use crate::mock::account_id::AccountId;
 
 pub type Amount = i128;
@@ -315,7 +315,7 @@ parameter_types! {
 	pub const InstrumentalPabloStrategyPalletId: PalletId = PalletId(*b"strmxpab");
 }
 
-impl instrumental_strategy_pablo::Config for MockRuntime {
+impl pallet_instrumental_strategy_pablo::Config for MockRuntime {
 	type Event = Event;
 	type WeightInfo = ();
 	type AssetId = CurrencyId;
@@ -338,7 +338,7 @@ parameter_types! {
 	pub const InstrumentalStrategyPalletId: PalletId = PalletId(*b"dynamic_");
 }
 
-impl instrumental_strategy::Config for MockRuntime {
+impl pallet_instrumental_strategy::Config for MockRuntime {
 	type Event = Event;
 	type WeightInfo = ();
 	type AssetId = CurrencyId;
@@ -396,9 +396,9 @@ frame_support::construct_runtime!(
 		Pablo: pallet_pablo::{Pallet, Call, Storage, Event<T>},
 		CollectiveInstrumental: pallet_collective::<Instance1>::{Pallet, Call, Event<T>, Origin<T>, Config<T>},
 
-		InstrumentalStrategy: instrumental_strategy::{Pallet, Call, Storage, Event<T>},
+		InstrumentalStrategy: pallet_instrumental_strategy::{Pallet, Call, Storage, Event<T>},
 		Instrumental: pallet_instrumental::{Pallet, Call, Storage, Event<T>},
-		PabloStrategy: instrumental_strategy_pablo::{Pallet, Call, Storage, Event<T>},
+		PabloStrategy: pallet_instrumental_strategy_pablo::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

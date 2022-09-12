@@ -1,8 +1,4 @@
-use composable_traits::{
-	defi::CurrencyPair,
-	dex::Amm,
-	instrumental::{Instrumental as InstrumentalTrait, InstrumentalVaultConfig},
-};
+use composable_traits::{defi::CurrencyPair, dex::Amm};
 use frame_support::{assert_noop, assert_ok, traits::fungibles::Mutate, weights::GetDispatchInfo};
 use frame_system::EventRecord;
 use pallet_collective::{Error as CollectiveError, Instance1, MemberCount, ProposalIndex};
@@ -13,6 +9,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, Hash},
 	Permill, Perquintill,
 };
+use traits::instrumental::{Instrumental as InstrumentalTrait, InstrumentalVaultConfig};
 
 use super::runtime::{
 	Call, CollectiveInstrumental, Event, Instrumental, MockRuntime, Origin, System, VaultId,

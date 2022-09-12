@@ -32,11 +32,7 @@ pub mod pallet {
 	// ---------------------------------------------------------------------------------------------
 
 	use codec::{Codec, FullCodec};
-	use composable_traits::{
-		dex::Amm,
-		instrumental::{InstrumentalProtocolStrategy, State},
-		vault::StrategicVault,
-	};
+	use composable_traits::{dex::Amm, vault::StrategicVault};
 	use frame_support::{
 		dispatch::{DispatchError, DispatchResult},
 		pallet_prelude::*,
@@ -49,6 +45,7 @@ pub mod pallet {
 		AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
 	};
 	use sp_std::fmt::Debug;
+	use traits::instrumental::{InstrumentalProtocolStrategy, State};
 
 	use crate::weights::WeightInfo;
 
@@ -150,7 +147,7 @@ pub mod pallet {
 		type MaxAssociatedVaults: Get<u32>;
 
 		/// The id used as the
-		/// [`AccountId`](composable_traits::instrumental::Instrumental::AccountId) of the vault.
+		/// [`AccountId`](traits::instrumental::Instrumental::AccountId) of the vault.
 		/// This should be unique across all pallets to avoid name collisions with other pallets and
 		/// vaults.
 		#[pallet::constant]
