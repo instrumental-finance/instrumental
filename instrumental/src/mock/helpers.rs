@@ -1,9 +1,10 @@
-use composable_traits::{instrumental::InstrumentalVaultConfig, vault::VaultConfig};
+use composable_traits::vault::VaultConfig;
 use frame_support::{
 	assert_ok, sp_std::collections::btree_map::BTreeMap, traits::fungibles::Mutate,
 };
 use primitives::currency::CurrencyId;
 use sp_runtime::Perquintill;
+use traits::instrumental::InstrumentalVaultConfig;
 
 use super::{
 	account_id::{AccountId, ADMIN},

@@ -6,7 +6,7 @@ use sp_runtime::Perquintill;
 /// the current pool.
 #[derive(Copy, Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq, MaxEncodedLen, TypeInfo)]
 pub enum State {
-	/// Indicates that there is currently no asset transfering going on for this asset
+	/// Indicates that there is currently no asset transferring going on for this asset
 	/// and it can be initialized.
 	Normal,
 	/// Indicates that an asset is currently being transferred from one pool to another

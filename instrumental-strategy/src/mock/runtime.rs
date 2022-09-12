@@ -311,7 +311,7 @@ parameter_types! {
 	pub const InstrumentalPabloStrategyPalletId: PalletId = PalletId(*b"strmxpab");
 }
 
-impl instrumental_strategy_pablo::Config for MockRuntime {
+impl pallet_instrumental_strategy_pablo::Config for MockRuntime {
 	type Event = Event;
 	type WeightInfo = ();
 	type AssetId = CurrencyId;
@@ -374,7 +374,7 @@ frame_support::construct_runtime!(
 		StakingRewards: pallet_staking_rewards::{Pallet, Storage, Call, Event<T>},
 		Pablo: pallet_pablo::{Pallet, Call, Storage, Event<T>},
 
-		PabloStrategy: instrumental_strategy_pablo::{Pallet, Call, Storage, Event<T>},
+		PabloStrategy: pallet_instrumental_strategy_pablo::{Pallet, Call, Storage, Event<T>},
 		InstrumentalStrategy: instrumental_strategy::{Pallet, Call, Storage, Event<T>},
 	}
 );

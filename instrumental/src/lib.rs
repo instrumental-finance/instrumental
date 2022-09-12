@@ -93,12 +93,8 @@ pub mod pallet {
 
 	use codec::{Codec, FullCodec};
 	use composable_support::validation::Validated;
-	use composable_traits::{
-		instrumental::{
-			Instrumental, InstrumentalDynamicStrategy, InstrumentalProtocolStrategy,
-			InstrumentalVaultConfig,
-		},
-		vault::{Deposit as Duration, FundsAvailability, StrategicVault, Vault, VaultConfig},
+	use composable_traits::vault::{
+		Deposit as Duration, FundsAvailability, StrategicVault, Vault, VaultConfig,
 	};
 	use frame_support::{pallet_prelude::*, transactional, PalletId};
 	use frame_system::{ensure_signed, pallet_prelude::OriginFor};
@@ -109,6 +105,10 @@ pub mod pallet {
 		ArithmeticError, Perquintill,
 	};
 	use sp_std::{collections::btree_map::BTreeMap, fmt::Debug};
+	use traits::instrumental::{
+		Instrumental, InstrumentalDynamicStrategy, InstrumentalProtocolStrategy,
+		InstrumentalVaultConfig,
+	};
 
 	use crate::{
 		validation::{ValidateVaultDoesNotExist, ValidateVaultExists},
@@ -179,7 +179,7 @@ pub mod pallet {
 			>;
 
 		/// The id used as the
-		/// [`AccountId`](composable_traits::instrumental::Instrumental::AccountId) of the vault.
+		/// [`AccountId`](traits::instrumental::Instrumental::AccountId) of the vault.
 		/// This should be unique across all pallets to avoid name collisions with other pallets and
 		/// vaults.
 		#[pallet::constant]
@@ -450,10 +450,10 @@ pub mod pallet {
 		///
 		/// ## Parameters
 		///
-		/// - `issuer`: the [`AccountId`](composable_traits::instrumental::Instrumental::AccountId)
-		///   of the user who issued the request
-		/// - `asset`: the [`AssetId`](composable_traits::instrumental::Instrumental::AssetId) of
-		///   the asset to deposit.
+		/// - `issuer`: the [`AccountId`](traits::instrumental::Instrumental::AccountId) of the user
+		///   who issued the request
+		/// - `asset`: the [`AssetId`](traits::instrumental::Instrumental::AssetId) of the asset to
+		///   deposit.
 		/// - `amount`: the amount of `asset` to deposit.
 		///
 		/// ## Requirements
@@ -483,10 +483,10 @@ pub mod pallet {
 		/// # Overview
 		///
 		/// ## Parameters
-		/// - `issuer`: the [`AccountId`](composable_traits::instrumental::Instrumental::AccountId)
-		///   of the user who issued the request
-		/// - `asset`: the [`AssetId`](composable_traits::instrumental::Instrumental::AssetId) of
-		///   the asset to withdraw.
+		/// - `issuer`: the [`AccountId`](traits::instrumental::Instrumental::AccountId) of the user
+		///   who issued the request
+		/// - `asset`: the [`AssetId`](traits::instrumental::Instrumental::AssetId) of the asset to
+		///   withdraw.
 		/// - `amount`: the amount of `asset` to withdraw.
 		///
 		/// ## Requirements

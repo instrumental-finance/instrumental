@@ -4,9 +4,9 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSigned, EnsureSignedBy};
-use instrumental::mock::account_id::{AccountId, ADMIN};
 use orml_traits::parameter_type_with_key;
 use pallet_collective::EnsureProportionAtLeast;
+use pallet_instrumental::mock::account_id::{AccountId, ADMIN};
 use primitives::currency::{CurrencyId, ValidateCurrencyId};
 use sp_core::H256;
 use sp_runtime::{
@@ -16,7 +16,7 @@ use sp_runtime::{
 };
 
 use super::fnft;
-use crate as instrumental;
+use crate as pallet_instrumental;
 
 pub type Amount = i128;
 pub type Balance = u128;
@@ -320,7 +320,7 @@ parameter_types! {
 	pub const InstrumentalPabloStrategyPalletId: PalletId = PalletId(*b"strmxpab");
 }
 
-impl instrumental_strategy_pablo::Config for MockRuntime {
+impl pallet_instrumental_strategy_pablo::Config for MockRuntime {
 	type Event = Event;
 	type WeightInfo = ();
 	type AssetId = CurrencyId;
@@ -343,7 +343,7 @@ parameter_types! {
 	pub const InstrumentalStrategyPalletId: PalletId = PalletId(*b"dynamic_");
 }
 
-impl instrumental_strategy::Config for MockRuntime {
+impl pallet_instrumental_strategy::Config for MockRuntime {
 	type Event = Event;
 	type WeightInfo = ();
 	type AssetId = CurrencyId;
@@ -364,7 +364,7 @@ parameter_types! {
 	pub const InstrumentalPalletId: PalletId = PalletId(*b"strm____");
 }
 
-impl instrumental::Config for MockRuntime {
+impl pallet_instrumental::Config for MockRuntime {
 	type Event = Event;
 	type WeightInfo = ();
 	type Balance = Balance;
@@ -401,9 +401,9 @@ frame_support::construct_runtime!(
 		StakingRewards: pallet_staking_rewards::{Pallet, Storage, Call, Event<T>},
 		Pablo: pallet_pablo::{Pallet, Call, Storage, Event<T>},
 
-		PabloStrategy: instrumental_strategy_pablo::{Pallet, Call, Storage, Event<T>},
-		InstrumentalStrategy: instrumental_strategy::{Pallet, Call, Storage, Event<T>},
-		Instrumental: instrumental::{Pallet, Call, Storage, Event<T>},
+		PabloStrategy: pallet_instrumental_strategy_pablo::{Pallet, Call, Storage, Event<T>},
+		InstrumentalStrategy: pallet_instrumental_strategy::{Pallet, Call, Storage, Event<T>},
+		Instrumental: pallet_instrumental::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
