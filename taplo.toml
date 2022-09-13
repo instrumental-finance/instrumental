@@ -1,0 +1,14 @@
+include = ["**/*.toml"]
+
+[formatting]
+# Automatically expand arrays to multiple lines
+array_auto_expand = false
+# Automatically collapse arrays if they fit in one line
+array_auto_collapse = false
+
+[[rule]]
+include = ["**/Cargo.toml"]
+keys = ["*dependencies*", "features"]
+
+[rule.formatting]
+reorder_keys = true
