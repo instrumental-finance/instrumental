@@ -1,14 +1,17 @@
 # Imports
 group_imports = "StdExternalCrate"
 imports_granularity = "Crate"
-reorder_imports = true
 # Consistency
 newline_style = "Unix"
-# Format comments
+# Format comments/docs
 comment_width = 100
+format_code_in_doc_comments = true
+normalize_comments = true
 wrap_comments = true
 # Errors
 error_on_line_overflow = true
 error_on_unformatted = true
 # For explicit running of rustfmt
 edition = "2021"
+# Basic
+reorder_impl_items = true
