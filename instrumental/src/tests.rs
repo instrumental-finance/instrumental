@@ -236,10 +236,13 @@ mod add_liquidity {
                     // Have each account try to deposit an asset balance into an Instrumental vault
                     deposits.into_iter().for_each(|(account, asset, balance)| {
                         if AssetVault::<MockRuntime>::contains_key(asset) {
-                            assert_ok!(Instrumental::add_liquidity(Origin::signed(account), asset, balance));
+                            assert_ok!(
+                                Instrumental::add_liquidity(Origin::signed(account), asset, balance)
+                            );
                         } else {
                             assert_noop!(
-                                Instrumental::add_liquidity(Origin::signed(account), asset, balance),
+                                Instrumental::add_liquidity(
+                                    Origin::signed(account), asset, balance),
                                 Error::<MockRuntime>::AssetDoesNotHaveAnAssociatedVault
                             );
                         }
@@ -264,13 +267,17 @@ mod add_liquidity {
                         let vault_account = Vault::account_id(&vault_id);
                         let vault_balance_before_deposit = Assets::balance(asset, &vault_account);
 
-                        assert_ok!(Instrumental::add_liquidity(Origin::signed(account), asset, balance));
+                        assert_ok!(
+                            Instrumental::add_liquidity(Origin::signed(account), asset, balance));
 
                         // Requirement 1: user transferred their balance
                         assert_eq!(Assets::balance(asset, &account), 0);
 
                         // Requirement 2: the vault holds the transferred balance
-                        assert_eq!(Assets::balance(asset, &vault_account), vault_balance_before_deposit + balance);
+                        assert_eq!(
+                            Assets::balance(asset, &vault_account),
+                            vault_balance_before_deposit + balance
+                        );
                     });
             });
         }
@@ -342,7 +349,10 @@ mod remove_liquidity {
                 InstrumentalVaultConfigBuilder::default().asset_id(asset).build()
             }).collect();
 
-            ExtBuilder::default().build().initialize_vaults_with_reserves(configs, reserves).execute_with(|| {
+            ExtBuilder::default()
+                .build()
+                .initialize_vaults_with_reserves(configs, reserves)
+                .execute_with(|| {
                 // Have each account try to withdraw an asset balance from an Instrumental vault
                 withdraws.into_iter().for_each(|(account, asset, balance)| {
                     if !AssetVault::<MockRuntime>::contains_key(asset) {
@@ -355,10 +365,14 @@ mod remove_liquidity {
                         let vault_account = Vault::account_id(&vault_id);
 
                         if Assets::balance(asset, &vault_account) >= balance {
-                            assert_ok!(Instrumental::remove_liquidity(Origin::signed(account), asset, balance));
+                            assert_ok!(
+                                Instrumental::remove_liquidity(
+                                    Origin::signed(account), asset, balance)
+                            );
                         } else {
                             assert_noop!(
-                                Instrumental::remove_liquidity(Origin::signed(account), asset, balance),
+                                Instrumental::remove_liquidity(
+                                        Origin::signed(account), asset, balance),
                                 Error::<MockRuntime>::NotEnoughLiquidity
                             );
                         }
@@ -376,10 +390,16 @@ mod remove_liquidity {
                 InstrumentalVaultConfigBuilder::default().asset_id(asset).build()
             }).collect();
 
-            ExtBuilder::default().initialize_balances(deposits.clone()).build().initialize_vaults(configs).execute_with(|| {
+            ExtBuilder::default()
+                .initialize_balances(deposits.clone())
+                .build()
+                .initialize_vaults(configs)
+                .execute_with(|| {
                 // Have each account try to deposit an asset balance into an Instrumental vault
                 deposits.iter().for_each(|(account, asset, balance)| {
-                    assert_ok!(Instrumental::add_liquidity(Origin::signed(*account), *asset, *balance));
+                    assert_ok!(
+                            Instrumental::add_liquidity(Origin::signed(*account), *asset, *balance)
+                    );
                 });
 
                 deposits.into_iter().for_each(|(account, asset, balance)| {
@@ -390,13 +410,16 @@ mod remove_liquidity {
                     let vault_account = Vault::account_id(&vault_id);
                     let vault_balance_before_withdraw = Assets::balance(asset, &vault_account);
 
-                    assert_ok!(Instrumental::remove_liquidity(Origin::signed(account), asset, balance));
+                    assert_ok!(
+                            Instrumental::remove_liquidity(Origin::signed(account), asset, balance)
+                    );
 
                     // Requirement 2: user has some balance of the asset
                     assert_eq!(Assets::balance(asset, &account), balance);
 
                     // Requirement 3: the vault holds the transferred balance
-                    assert_eq!(Assets::balance(asset, &vault_account), vault_balance_before_withdraw - balance);
+                    assert_eq!(Assets::balance(asset, &vault_account),
+                        vault_balance_before_withdraw - balance);
                 });
             });
         }
@@ -494,7 +517,9 @@ mod spi_io_test_externalities {
             }).collect();
 
             ExtBuilder::default().build().initialize_vaults(configs).execute_with(|| {
-                assets.iter().for_each(|&asset| assert!(AssetVault::<MockRuntime>::contains_key(asset)));
+                assets
+                    .iter()
+                    .for_each(|&asset| assert!(AssetVault::<MockRuntime>::contains_key(asset)));
             });
         }
 
@@ -506,7 +531,10 @@ mod spi_io_test_externalities {
                 InstrumentalVaultConfigBuilder::default().asset_id(asset).build()
             }).collect();
 
-            ExtBuilder::default().build().initialize_vaults_with_reserves(configs, reserves.clone()).execute_with(|| {
+            ExtBuilder::default()
+                .build()
+                .initialize_vaults_with_reserves(configs, reserves.clone())
+                .execute_with(|| {
                 reserves.iter().for_each(|&(asset, balance)| {
                     assert!(AssetVault::<MockRuntime>::contains_key(asset));
 

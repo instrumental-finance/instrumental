@@ -1,9 +1,9 @@
 //! # Instrumental Pallet
 //!
-//! This pallet will house the logic required by [`Instrumental Finance`](https://www.instrumental.finance/);
-//! Instrumental will speak to this pallet through the Mosaic Pallet. This pallet will be
-//! responsible for sending assets into their associated vaults and specifying which strategies
-//! should be set for each vault.
+//! This pallet will house the logic required by [`Instrumental
+//! Finance`](https://www.instrumental.finance/); Instrumental will speak to this pallet through
+//! the Mosaic Pallet. This pallet will be responsible for sending assets into their associated
+//! vaults and specifying which strategies should be set for each vault.
 //!
 //! ## Overview
 //!
@@ -171,7 +171,10 @@ pub mod pallet {
             VaultId = Self::VaultId,
         >;
 
-        type InstrumentalStrategy: InstrumentalDynamicStrategy<AssetId = Self::AssetId, AccountId = Self::AccountId>
+        // TODO(saruman9): remove when `error_on_line_overflow` option will be stable
+        #[rustfmt::skip]
+        type InstrumentalStrategy:
+            InstrumentalDynamicStrategy<AssetId = Self::AssetId, AccountId = Self::AccountId>
             + InstrumentalProtocolStrategy<
                 AssetId = Self::AssetId,
                 AccountId = Self::AccountId,
@@ -193,9 +196,9 @@ pub mod pallet {
     pub type InstrumentalVaultConfigFor<T> =
         InstrumentalVaultConfig<<T as Config>::AssetId, Perquintill>;
 
-    // -------------------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------------
     //                                          Runtime Storage
-    // -------------------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------------
 
     /// Stores the [`VaultId`](Config::VaultId) that corresponds to a specific
     /// [`AssetId`](Config::AssetId).

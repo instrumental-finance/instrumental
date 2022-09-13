@@ -394,7 +394,8 @@ frame_support::construct_runtime!(
         Assets: pallet_assets::{Pallet, Call, Storage},
         StakingRewards: pallet_staking_rewards::{Pallet, Storage, Call, Event<T>},
         Pablo: pallet_pablo::{Pallet, Call, Storage, Event<T>},
-        CollectiveInstrumental: pallet_collective::<Instance1>::{Pallet, Call, Event<T>, Origin<T>, Config<T>},
+        CollectiveInstrumental:
+            pallet_collective::<Instance1>::{Pallet, Call, Event<T>, Origin<T>, Config<T>},
 
         InstrumentalStrategy: pallet_instrumental_strategy::{Pallet, Call, Storage, Event<T>},
         Instrumental: pallet_instrumental::{Pallet, Call, Storage, Event<T>},

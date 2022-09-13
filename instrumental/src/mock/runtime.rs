@@ -392,7 +392,8 @@ frame_support::construct_runtime!(
         Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
         Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage},
-        CollectiveInstrumental: pallet_collective::<Instance1>::{Pallet, Call, Event<T>, Origin<T>, Config<T>},
+        CollectiveInstrumental:
+            pallet_collective::<Instance1>::{Pallet, Call, Event<T>, Origin<T>, Config<T>},
 
         LpTokenFactory: pallet_currency_factory::{Pallet, Storage, Event<T>},
         Assets: pallet_assets::{Pallet, Call, Storage},
