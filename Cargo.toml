@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "instrumental",
-    "instrumental-strategy",
-    "instrumental-strategy-pablo",
-    "traits",
+  "instrumental",
+  "instrumental-strategy",
+  "instrumental-strategy-pablo",
+  "traits",
 ]
