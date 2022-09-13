@@ -7,5 +7,8 @@ newline_style = "Unix"
 # Format comments
 comment_width = 100
 wrap_comments = true
-# Basic
+# Errors
+error_on_line_overflow = true
+error_on_unformatted = true
+# For explicit running of rustfmt
 edition = "2021"
