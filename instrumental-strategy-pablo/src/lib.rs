@@ -264,6 +264,7 @@ pub mod pallet {
             <Self as InstrumentalProtocolStrategy>::set_pool_id_for_asset(asset_id, pool_id)?;
             Ok(().into())
         }
+
         /// Occur rebalance of liquidity of each vault.
         ///
         /// Emits [`RebalancedVault`](Event::RebalancedVault) event when successful.
@@ -281,9 +282,9 @@ pub mod pallet {
 
     impl<T: Config> InstrumentalProtocolStrategy for Pallet<T> {
         type AccountId = T::AccountId;
-        type VaultId = T::VaultId;
         type AssetId = T::AssetId;
         type PoolId = T::PoolId;
+        type VaultId = T::VaultId;
 
         fn account_id() -> Self::AccountId {
             T::PalletId::get().into_account_truncating()

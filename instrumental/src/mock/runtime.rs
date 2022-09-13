@@ -46,30 +46,30 @@ parameter_types! {
 }
 
 impl frame_system::Config for MockRuntime {
-    type Origin = Origin;
-    type Index = u64;
+    type AccountData = pallet_balances::AccountData<Balance>;
+    type AccountId = AccountId;
+    type BaseCallFilter = Everything;
+    type BlockHashCount = BlockHashCount;
+    type BlockLength = ();
     type BlockNumber = BlockNumber;
+    type BlockWeights = ();
     type Call = Call;
+    type DbWeight = ();
+    type Event = Event;
     type Hash = H256;
     type Hashing = ::sp_runtime::traits::BlakeTwo256;
-    type AccountId = AccountId;
-    type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
-    type BlockHashCount = BlockHashCount;
-    type BlockWeights = ();
-    type BlockLength = ();
-    type Version = ();
-    type PalletInfo = PalletInfo;
-    type AccountData = pallet_balances::AccountData<Balance>;
-    type OnNewAccount = ();
-    type OnKilledAccount = ();
-    type DbWeight = ();
-    type BaseCallFilter = Everything;
-    type SystemWeightInfo = ();
-    type SS58Prefix = ();
-    type OnSetCode = ();
+    type Index = u64;
+    type Lookup = IdentityLookup<Self::AccountId>;
     type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type OnKilledAccount = ();
+    type OnNewAccount = ();
+    type OnSetCode = ();
+    type Origin = Origin;
+    type PalletInfo = PalletInfo;
+    type SS58Prefix = ();
+    type SystemWeightInfo = ();
+    type Version = ();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -81,15 +81,15 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for MockRuntime {
-    type Balance = Balance;
-    type Event = Event;
-    type DustRemoval = ();
-    type ExistentialDeposit = BalanceExistentialDeposit;
     type AccountStore = System;
-    type WeightInfo = ();
+    type Balance = Balance;
+    type DustRemoval = ();
+    type Event = Event;
+    type ExistentialDeposit = BalanceExistentialDeposit;
     type MaxLocks = ();
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
+    type WeightInfo = ();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -104,19 +104,19 @@ parameter_type_with_key! {
 
 type ReserveIdentifier = [u8; 8];
 impl orml_tokens::Config for MockRuntime {
-    type Event = Event;
-    type Balance = Balance;
     type Amount = Amount;
+    type Balance = Balance;
     type CurrencyId = CurrencyId;
-    type WeightInfo = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type OnDust = ();
-    type MaxLocks = ();
-    type ReserveIdentifier = ReserveIdentifier;
-    type MaxReserves = frame_support::traits::ConstU32<2>;
     type DustRemovalWhitelist = Everything;
-    type OnNewTokenAccount = ();
+    type Event = Event;
+    type ExistentialDeposits = ExistentialDeposits;
+    type MaxLocks = ();
+    type MaxReserves = frame_support::traits::ConstU32<2>;
+    type OnDust = ();
     type OnKilledTokenAccount = ();
+    type OnNewTokenAccount = ();
+    type ReserveIdentifier = ReserveIdentifier;
+    type WeightInfo = ();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -124,10 +124,10 @@ impl orml_tokens::Config for MockRuntime {
 // -------------------------------------------------------------------------------------------------
 
 impl pallet_currency_factory::Config for MockRuntime {
-    type Event = Event;
+    type AddOrigin = EnsureRoot<AccountId>;
     type AssetId = CurrencyId;
     type Balance = Balance;
-    type AddOrigin = EnsureRoot<AccountId>;
+    type Event = Event;
     type WeightInfo = ();
 }
 
@@ -136,8 +136,8 @@ impl pallet_currency_factory::Config for MockRuntime {
 // -------------------------------------------------------------------------------------------------
 
 impl pallet_governance_registry::Config for MockRuntime {
-    type Event = Event;
     type AssetId = CurrencyId;
+    type Event = Event;
     type WeightInfo = ();
 }
 
@@ -154,16 +154,16 @@ ord_parameter_types! {
 }
 
 impl pallet_assets::Config for MockRuntime {
-    type NativeAssetId = NativeAssetId;
-    type GenerateCurrencyId = LpTokenFactory;
+    type AdminOrigin = EnsureSignedBy<RootAccount, AccountId>;
     type AssetId = CurrencyId;
     type Balance = Balance;
-    type NativeCurrency = Balances;
-    type MultiCurrency = Tokens;
-    type WeightInfo = ();
-    type AdminOrigin = EnsureSignedBy<RootAccount, AccountId>;
-    type GovernanceRegistry = GovernanceRegistry;
     type CurrencyValidator = ValidateCurrencyId;
+    type GenerateCurrencyId = LpTokenFactory;
+    type GovernanceRegistry = GovernanceRegistry;
+    type MultiCurrency = Tokens;
+    type NativeAssetId = NativeAssetId;
+    type NativeCurrency = Balances;
+    type WeightInfo = ();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -182,23 +182,23 @@ parameter_types! {
 }
 
 impl pallet_vault::Config for MockRuntime {
-    type Event = Event;
-    type Currency = Assets;
     type AssetId = CurrencyId;
     type Balance = Balance;
-    type MaxStrategies = MaxStrategies;
-    type CurrencyFactory = LpTokenFactory;
     type Convert = ConvertInto;
+    type CreationDeposit = CreationDeposit;
+    type Currency = Assets;
+    type CurrencyFactory = LpTokenFactory;
+    type Event = Event;
+    type ExistentialDeposit = ExistentialDeposit;
+    type MaxStrategies = MaxStrategies;
     type MinimumDeposit = MinimumDeposit;
     type MinimumWithdrawal = MinimumWithdrawal;
-    type CreationDeposit = CreationDeposit;
-    type ExistentialDeposit = ExistentialDeposit;
-    type RentPerBlock = RentPerBlock;
     type NativeCurrency = Assets;
-    type VaultId = VaultId;
-    type TombstoneDuration = TombstoneDuration;
-    type WeightInfo = ();
     type PalletId = VaultPalletId;
+    type RentPerBlock = RentPerBlock;
+    type TombstoneDuration = TombstoneDuration;
+    type VaultId = VaultId;
+    type WeightInfo = ();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -210,9 +210,9 @@ parameter_types! {
 }
 
 impl pallet_timestamp::Config for MockRuntime {
+    type MinimumPeriod = MinimumPeriod;
     type Moment = Moment;
     type OnTimestampSet = ();
-    type MinimumPeriod = MinimumPeriod;
     type WeightInfo = ();
 }
 
@@ -227,23 +227,23 @@ parameter_types! {
 }
 
 impl pallet_staking_rewards::Config for MockRuntime {
-    type Event = Event;
-    type Balance = Balance;
-    type RewardPoolId = RewardPoolId;
-    type PositionId = PositionId;
     type AssetId = CurrencyId;
     type Assets = Tokens;
+    type Balance = Balance;
     type CurrencyFactory = LpTokenFactory;
-    type UnixTime = Timestamp;
-    type ReleaseRewardsPoolsBatchSize = frame_support::traits::ConstU8<13>;
-    type PalletId = StakingRewardsPalletId;
-    type MaxStakingDurationPresets = MaxStakingDurationPresets;
-    type MaxRewardConfigsPerPool = MaxRewardConfigsPerPool;
-    type RewardPoolCreationOrigin = EnsureRoot<Self::AccountId>;
-    type WeightInfo = ();
-    type RewardPoolUpdateOrigin = EnsureRoot<Self::AccountId>;
-    type FinancialNftInstanceId = u64;
+    type Event = Event;
     type FinancialNft = fnft::MockFnft;
+    type FinancialNftInstanceId = u64;
+    type MaxRewardConfigsPerPool = MaxRewardConfigsPerPool;
+    type MaxStakingDurationPresets = MaxStakingDurationPresets;
+    type PalletId = StakingRewardsPalletId;
+    type PositionId = PositionId;
+    type ReleaseRewardsPoolsBatchSize = frame_support::traits::ConstU8<13>;
+    type RewardPoolCreationOrigin = EnsureRoot<Self::AccountId>;
+    type RewardPoolId = RewardPoolId;
+    type RewardPoolUpdateOrigin = EnsureRoot<Self::AccountId>;
+    type UnixTime = Timestamp;
+    type WeightInfo = ();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -262,31 +262,31 @@ parameter_types! {
 }
 
 impl pallet_pablo::Config for MockRuntime {
-    type Event = Event;
     type AssetId = CurrencyId;
+    type Assets = Assets;
     type Balance = Balance;
     type Convert = ConvertInto;
     type CurrencyFactory = LpTokenFactory;
-    type Assets = Assets;
-    type PoolId = PoolId;
-    type PalletId = PabloPalletId;
-    type LocalAssets = LpTokenFactory;
-    type LbpMinSaleDuration = MinSaleDuration;
-    type LbpMaxSaleDuration = MaxSaleDuration;
-    type LbpMaxInitialWeight = MaxInitialWeight;
-    type LbpMinFinalWeight = MinFinalWeight;
-    type PoolCreationOrigin = EnsureSigned<Self::AccountId>;
     type EnableTwapOrigin = EnsureRoot<AccountId>;
-    type Time = Timestamp;
-    type TWAPInterval = TWAPInterval;
-    type WeightInfo = ();
-    type RewardPoolId = RewardPoolId;
-    type MaxStakingRewardPools = MaxStakingRewardPools;
+    type Event = Event;
+    type LbpMaxInitialWeight = MaxInitialWeight;
+    type LbpMaxSaleDuration = MaxSaleDuration;
+    type LbpMinFinalWeight = MinFinalWeight;
+    type LbpMinSaleDuration = MinSaleDuration;
+    type LocalAssets = LpTokenFactory;
+    type ManageStaking = StakingRewards;
     type MaxRewardConfigsPerPool = MaxRewardConfigsPerPool;
     type MaxStakingDurationPresets = MaxStakingDurationPresets;
-    type ManageStaking = StakingRewards;
-    type ProtocolStaking = StakingRewards;
+    type MaxStakingRewardPools = MaxStakingRewardPools;
     type MsPerBlock = MillisecsPerBlock;
+    type PalletId = PabloPalletId;
+    type PoolCreationOrigin = EnsureSigned<Self::AccountId>;
+    type PoolId = PoolId;
+    type ProtocolStaking = StakingRewards;
+    type RewardPoolId = RewardPoolId;
+    type TWAPInterval = TWAPInterval;
+    type Time = Timestamp;
+    type WeightInfo = ();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -301,13 +301,13 @@ parameter_types! {
 
 type InstrumentalPabloCollective = pallet_collective::Instance1;
 impl pallet_collective::Config<InstrumentalPabloCollective> for MockRuntime {
+    type DefaultVote = pallet_collective::PrimeDefaultVote;
+    type Event = Event;
+    type MaxMembers = CouncilMaxMembers;
+    type MaxProposals = CouncilMaxProposals;
+    type MotionDuration = CouncilMotionDuration;
     type Origin = Origin;
     type Proposal = Call;
-    type Event = Event;
-    type MotionDuration = CouncilMotionDuration;
-    type MaxProposals = CouncilMaxProposals;
-    type MaxMembers = CouncilMaxMembers;
-    type DefaultVote = pallet_collective::PrimeDefaultVote;
     type WeightInfo = pallet_collective::weights::SubstrateWeight<MockRuntime>;
 }
 
@@ -321,18 +321,18 @@ parameter_types! {
 }
 
 impl pallet_instrumental_strategy_pablo::Config for MockRuntime {
-    type Event = Event;
-    type WeightInfo = ();
     type AssetId = CurrencyId;
     type Balance = Balance;
-    type VaultId = VaultId;
-    type Vault = Vault;
-    type MaxAssociatedVaults = MaxAssociatedVaults;
-    type PoolId = PoolId;
     type Currency = Tokens;
+    type Event = Event;
+    type ExternalOrigin = EnsureProportionAtLeast<AccountId, InstrumentalPabloCollective, 2, 3>;
+    type MaxAssociatedVaults = MaxAssociatedVaults;
     type Pablo = Pablo;
     type PalletId = InstrumentalPabloStrategyPalletId;
-    type ExternalOrigin = EnsureProportionAtLeast<AccountId, InstrumentalPabloCollective, 2, 3>;
+    type PoolId = PoolId;
+    type Vault = Vault;
+    type VaultId = VaultId;
+    type WeightInfo = ();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -344,16 +344,16 @@ parameter_types! {
 }
 
 impl pallet_instrumental_strategy::Config for MockRuntime {
-    type Event = Event;
-    type WeightInfo = ();
     type AssetId = CurrencyId;
     type Balance = Balance;
-    type VaultId = VaultId;
-    type Vault = Vault;
-    type PabloStrategy = PabloStrategy;
+    type Event = Event;
     type MaxAssociatedVaults = MaxAssociatedVaults;
+    type PabloStrategy = PabloStrategy;
     type PalletId = InstrumentalStrategyPalletId;
     type PoolId = PoolId;
+    type Vault = Vault;
+    type VaultId = VaultId;
+    type WeightInfo = ();
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -365,14 +365,14 @@ parameter_types! {
 }
 
 impl pallet_instrumental::Config for MockRuntime {
-    type Event = Event;
-    type WeightInfo = ();
-    type Balance = Balance;
     type AssetId = CurrencyId;
-    type VaultId = VaultId;
-    type Vault = Vault;
+    type Balance = Balance;
+    type Event = Event;
     type InstrumentalStrategy = InstrumentalStrategy;
     type PalletId = InstrumentalPalletId;
+    type Vault = Vault;
+    type VaultId = VaultId;
+    type WeightInfo = ();
 }
 
 // -------------------------------------------------------------------------------------------------

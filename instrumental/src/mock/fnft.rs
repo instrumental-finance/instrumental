@@ -10,8 +10,8 @@ use super::account_id::AccountId;
 pub struct MockFnft;
 
 impl Inspect<AccountId> for MockFnft {
-    type ItemId = ();
     type CollectionId = ();
+    type ItemId = ();
 
     fn owner(_collection: &Self::CollectionId, _item: &Self::ItemId) -> Option<AccountId> {
         todo!()

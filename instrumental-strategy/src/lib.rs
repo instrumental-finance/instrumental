@@ -230,8 +230,8 @@ pub mod pallet {
     impl<T: Config> InstrumentalProtocolStrategy for Pallet<T> {
         type AccountId = T::AccountId;
         type AssetId = T::AssetId;
-        type VaultId = T::VaultId;
         type PoolId = T::PoolId;
+        type VaultId = T::VaultId;
 
         fn account_id() -> Self::AccountId {
             T::PalletId::get().into_account_truncating()
