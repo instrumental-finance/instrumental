@@ -6,68 +6,68 @@ use sp_runtime::Perquintill;
 /// the current pool.
 #[derive(Copy, Clone, Encode, Decode, RuntimeDebug, PartialEq, Eq, MaxEncodedLen, TypeInfo)]
 pub enum State {
-	/// Indicates that there is currently no asset transferring going on for this asset
-	/// and it can be initialized.
-	Normal,
-	/// Indicates that an asset is currently being transferred from one pool to another
-	/// for this asset, so it is not possible to initialize a new transfer.
-	Transferring,
+    /// Indicates that there is currently no asset transferring going on for this asset
+    /// and it can be initialized.
+    Normal,
+    /// Indicates that an asset is currently being transferred from one pool to another
+    /// for this asset, so it is not possible to initialize a new transfer.
+    Transferring,
 }
 
 #[derive(Clone, Copy, Encode, Decode, Default, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct InstrumentalVaultConfig<AssetId, Percent> {
-	pub asset_id: AssetId,
-	pub percent_deployable: Percent,
+    pub asset_id: AssetId,
+    pub percent_deployable: Percent,
 }
 
 pub trait Instrumental {
-	type AccountId: core::cmp::Ord;
-	type AssetId;
-	type Balance;
-	type VaultId: Clone + Codec + Debug + PartialEq + Default + Parameter;
+    type AccountId: core::cmp::Ord;
+    type AssetId;
+    type Balance;
+    type VaultId: Clone + Codec + Debug + PartialEq + Default + Parameter;
 
-	fn account_id() -> Self::AccountId;
+    fn account_id() -> Self::AccountId;
 
-	fn create(
-		config: InstrumentalVaultConfig<Self::AssetId, Perquintill>,
-	) -> Result<Self::VaultId, DispatchError>;
+    fn create(
+        config: InstrumentalVaultConfig<Self::AssetId, Perquintill>,
+    ) -> Result<Self::VaultId, DispatchError>;
 
-	fn add_liquidity(
-		issuer: &Self::AccountId,
-		asset: &Self::AssetId,
-		amount: Self::Balance,
-	) -> DispatchResult;
+    fn add_liquidity(
+        issuer: &Self::AccountId,
+        asset: &Self::AssetId,
+        amount: Self::Balance,
+    ) -> DispatchResult;
 
-	fn remove_liquidity(
-		issuer: &Self::AccountId,
-		asset: &Self::AssetId,
-		amount: Self::Balance,
-	) -> DispatchResult;
+    fn remove_liquidity(
+        issuer: &Self::AccountId,
+        asset: &Self::AssetId,
+        amount: Self::Balance,
+    ) -> DispatchResult;
 }
 
 pub trait InstrumentalDynamicStrategy {
-	type AccountId: core::cmp::Ord;
-	type AssetId;
+    type AccountId: core::cmp::Ord;
+    type AssetId;
 
-	fn get_optimum_strategy_for(asset: Self::AssetId) -> Result<Self::AccountId, DispatchError>;
+    fn get_optimum_strategy_for(asset: Self::AssetId) -> Result<Self::AccountId, DispatchError>;
 }
 
 pub trait InstrumentalProtocolStrategy {
-	type AccountId: core::cmp::Ord;
-	type VaultId: Clone + Codec + Debug + PartialEq + Default + Parameter;
-	type AssetId;
-	type PoolId;
+    type AccountId: core::cmp::Ord;
+    type VaultId: Clone + Codec + Debug + PartialEq + Default + Parameter;
+    type AssetId;
+    type PoolId;
 
-	fn account_id() -> Self::AccountId;
+    fn account_id() -> Self::AccountId;
 
-	fn associate_vault(vault_id: &Self::VaultId) -> Result<(), DispatchError>;
+    fn associate_vault(vault_id: &Self::VaultId) -> Result<(), DispatchError>;
 
-	fn rebalance() -> DispatchResult;
+    fn rebalance() -> DispatchResult;
 
-	fn get_apy(asset: Self::AssetId) -> Result<u128, DispatchError>;
+    fn get_apy(asset: Self::AssetId) -> Result<u128, DispatchError>;
 
-	fn set_pool_id_for_asset(
-		asset_id: Self::AssetId,
-		pool_id: Self::PoolId,
-	) -> Result<(), DispatchError>;
+    fn set_pool_id_for_asset(
+        asset_id: Self::AssetId,
+        pool_id: Self::PoolId,
+    ) -> Result<(), DispatchError>;
 }
