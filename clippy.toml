@@ -1,0 +1,9 @@
+disallowed-methods = [
+  { path = "core::result::Result::unwrap", reason = "Errors should be handled properly. If panicking is valid in this context, make sure to write a comment explaining why." },
+  { path = "core::option::Option::unwrap", reason = "Errors should be handled properly. If panicking is valid in this context, make sure to write a comment explaining why." },
+]
+
+disallowed-types = [
+  { path = "frame_support::storage::types::ValueQuery", reason = "Use OptionalQuery for additional checks." },
+]
+type-complexity-threshold = 5000
