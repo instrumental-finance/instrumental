@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ $default-branch, $protected-branches ]
+  workflow_dispatch:
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  clippy:
+    name: Run cargo clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: |
+            --workspace
+            --all-features
+            -- -D warnings
+
+  test:
+    name: Run cargo nextest
+    runs-on: ubuntu-latest
+    env:
+      NEXTEST_RETRIES: 2
+      NEXTEST_FAILURE_OUTPUT: immediate-final
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Run cargo nextest
+        uses: actions-rs/cargo@v1
+        with:
+          command: nextest
+          args: |
+            run
+            --workspace
+            --all-features
+
+  fmt:
+    name: Run cargo +nightly fmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          # https://github.com/Swatinem/rust-cache#cache-effectiveness
+          toolchain: nightly-2022-09-14
+          profile: minimal
+          components: rustfmt
+          default: true
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run command
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --check
+
+  doc:
+    name: Run cargo doc
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Run command
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: |
+            --workspace
+            --all-features
+            --no-deps
+            --document-private-items
