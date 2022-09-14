@@ -14,22 +14,24 @@ pub const ALICE: AccountId = Public(hex!(
 pub const BOB: AccountId = Public(hex!(
     "0000000000000000000000000000000000000000000000000000000000000002"
 ));
-pub const CHARLIE: AccountId = Public(hex!(
+// TODO(saruman9): remove or use in the future
+pub const _CHARLIE: AccountId = Public(hex!(
     "0000000000000000000000000000000000000000000000000000000000000003"
 ));
-pub const DAVE: AccountId = Public(hex!(
+pub const _DAVE: AccountId = Public(hex!(
     "0000000000000000000000000000000000000000000000000000000000000004"
 ));
-pub const EVEN: AccountId = Public(hex!(
+pub const _EVEN: AccountId = Public(hex!(
     "0000000000000000000000000000000000000000000000000000000000000005"
 ));
 
-pub const fn accounts() -> [Just<AccountId>; 5] {
+// TODO(saruman9): remove or use in the future
+pub const fn _accounts() -> [Just<AccountId>; 5] {
     [
         Just(ALICE),
         Just(BOB),
-        Just(CHARLIE),
-        Just(DAVE),
-        Just(EVEN),
+        Just(_CHARLIE),
+        Just(_DAVE),
+        Just(_EVEN),
     ]
 }

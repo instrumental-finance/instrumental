@@ -434,7 +434,8 @@ impl ExtBuilder {
         storage.into()
     }
 
-    pub fn initialize_balance(
+    // TODO(saruman9): remove or use in the future
+    pub fn _initialize_balance(
         mut self,
         user: AccountId,
         asset: CurrencyId,

@@ -12,17 +12,17 @@ impl Inspect<u128> for MockFnft {
     type ItemId = ();
 
     fn owner(_collection: &Self::CollectionId, _item: &Self::ItemId) -> Option<u128> {
-        todo!()
+        unimplemented!()
     }
 }
 
 impl FinancialNft<u128> for MockFnft {
     fn asset_account(_collection: &Self::CollectionId, _instance: &Self::ItemId) -> u128 {
-        todo!()
+        unimplemented!()
     }
 
     fn get_next_nft_id(_collection: &Self::CollectionId) -> Result<Self::ItemId, DispatchError> {
-        todo!()
+        unimplemented!()
     }
 }
 
@@ -32,7 +32,7 @@ impl Create<u128> for MockFnft {
         _who: &u128,
         _admin: &u128,
     ) -> DispatchResult {
-        todo!()
+        unimplemented!()
     }
 }
 
