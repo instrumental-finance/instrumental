@@ -1,6 +1,6 @@
 use frame_support::{assert_noop, assert_ok};
 use primitives::currency::CurrencyId;
-use traits::instrumental::InstrumentalProtocolStrategy;
+use traits::strategy::InstrumentalProtocolStrategy;
 
 use crate::mock::runtime::{
     ExtBuilder, InstrumentalStrategy, MockRuntime, PabloStrategy, VaultId, MAX_ASSOCIATED_VAULTS,

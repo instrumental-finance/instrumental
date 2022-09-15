@@ -3,7 +3,7 @@ use primitives::currency::CurrencyId;
 use sp_core::H256;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 use sp_std::collections::btree_set::BTreeSet;
-use traits::instrumental::InstrumentalProtocolStrategy;
+use traits::strategy::InstrumentalProtocolStrategy;
 
 use crate::{
     mock::{

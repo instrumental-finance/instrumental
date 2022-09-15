@@ -1,6 +1,7 @@
-use codec::Codec;
-use frame_support::{pallet_prelude::*, sp_std::fmt::Debug, RuntimeDebug};
-use sp_runtime::Perquintill;
+use codec::{Codec, Decode, Encode, MaxEncodedLen};
+use frame_support::{sp_std::fmt::Debug, Parameter, RuntimeDebug};
+use scale_info::TypeInfo;
+use sp_runtime::{DispatchError, DispatchResult, Perquintill};
 
 /// An indication of pool state. Shows whether the transfer of assets is currently taking place with
 /// the current pool.
@@ -50,24 +51,4 @@ pub trait InstrumentalDynamicStrategy {
     type AssetId;
 
     fn get_optimum_strategy_for(asset: Self::AssetId) -> Result<Self::AccountId, DispatchError>;
-}
-
-pub trait InstrumentalProtocolStrategy {
-    type AccountId: core::cmp::Ord;
-    type VaultId: Clone + Codec + Debug + PartialEq + Default + Parameter;
-    type AssetId;
-    type PoolId;
-
-    fn account_id() -> Self::AccountId;
-
-    fn associate_vault(vault_id: &Self::VaultId) -> Result<(), DispatchError>;
-
-    fn rebalance() -> DispatchResult;
-
-    fn get_apy(asset: Self::AssetId) -> Result<u128, DispatchError>;
-
-    fn set_pool_id_for_asset(
-        asset_id: Self::AssetId,
-        pool_id: Self::PoolId,
-    ) -> Result<(), DispatchError>;
 }

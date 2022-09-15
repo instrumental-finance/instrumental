@@ -105,9 +105,9 @@ pub mod pallet {
         ArithmeticError, Perquintill,
     };
     use sp_std::{collections::btree_map::BTreeMap, fmt::Debug};
-    use traits::instrumental::{
-        Instrumental, InstrumentalDynamicStrategy, InstrumentalProtocolStrategy,
-        InstrumentalVaultConfig,
+    use traits::{
+        instrumental::{Instrumental, InstrumentalDynamicStrategy, InstrumentalVaultConfig},
+        strategy::InstrumentalProtocolStrategy,
     };
 
     use crate::{

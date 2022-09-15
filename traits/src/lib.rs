@@ -18,3 +18,4 @@
 )]
 
 pub mod instrumental;
+pub mod strategy;

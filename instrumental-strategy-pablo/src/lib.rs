@@ -45,7 +45,7 @@ pub mod pallet {
         AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
     };
     use sp_std::fmt::Debug;
-    use traits::instrumental::{InstrumentalProtocolStrategy, State};
+    use traits::{instrumental::State, strategy::InstrumentalProtocolStrategy};
 
     use crate::weights::WeightInfo;
 
