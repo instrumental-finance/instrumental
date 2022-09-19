@@ -20,6 +20,28 @@ use crate::{
     pallet, Error,
 };
 
+fn prepare_for_rebalancing() -> VaultId {
+    let base_asset = CurrencyId::LAYR;
+
+    // Create Vault (LAYR)
+    let vault_id = create_vault(base_asset, None);
+
+    // Create Pool (LAYR/CROWD_LOAN)
+    let pool_id = create_pool(base_asset, None, None, None, None, None);
+
+    let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
+        asset_id: base_asset,
+        pool_id,
+    });
+    set_admin_members(vec![ALICE], 5);
+    make_proposal(proposal, ALICE, 1, 0, None);
+
+    let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
+    make_proposal(proposal, ALICE, 1, 0, None);
+
+    vault_id
+}
+
 // -------------------------------------------------------------------------------------------------
 //                                          Associate Vault
 // -------------------------------------------------------------------------------------------------
@@ -117,25 +139,7 @@ mod rebalance {
     fn rebalance_emits_event() {
         ExtBuilder::default().build().execute_with(|| {
             System::set_block_number(1);
-            let base_asset = CurrencyId::LAYR;
-            let quote_asset = CurrencyId::CROWD_LOAN;
-            let amount = 1_000_000_000 * CurrencyId::unit::<Balance>();
-
-            // Create Vault (LAYR)
-            let vault_id = create_vault(base_asset, None);
-
-            // Create Pool (LAYR/CROWD_LOAN)
-            let pool_id = create_pool(base_asset, amount, quote_asset, amount, None, None);
-
-            let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
-                asset_id: base_asset,
-                pool_id,
-            });
-            set_admin_members(vec![ALICE], 5);
-            make_proposal(proposal, ALICE, 1, 0, None);
-
-            let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
-            make_proposal(proposal, ALICE, 1, 0, None);
+            let vault_id = prepare_for_rebalancing();
 
             assert_ok!(PabloStrategy::rebalance());
 
@@ -199,34 +203,26 @@ mod set_pool_id_for_asset {
     }
 }
 
+// -------------------------------------------------------------------------------------------------
+//                                              Halting
+// -------------------------------------------------------------------------------------------------
+
 #[cfg(test)]
 mod halt {
     use super::*;
+
+    fn halting() {
+        prepare_for_rebalancing();
+
+        <PabloStrategy as InstrumentalProtocolStrategy>::halt();
+        System::assert_last_event(Event::PabloStrategy(pallet::Event::Halted));
+    }
 
     #[test]
     fn halt() {
         ExtBuilder::default().build().execute_with(|| {
             System::set_block_number(1);
-            let base_asset = CurrencyId::LAYR;
-
-            // Create Vault (LAYR)
-            let vault_id = create_vault(base_asset, None);
-
-            // Create Pool (LAYR/CROWD_LOAN)
-            let pool_id = create_pool(base_asset, None, None, None, None, None);
-
-            let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
-                asset_id: base_asset,
-                pool_id,
-            });
-            set_admin_members(vec![ALICE], 5);
-            make_proposal(proposal, ALICE, 1, 0, None);
-
-            let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
-            make_proposal(proposal, ALICE, 1, 0, None);
-
-            <PabloStrategy as InstrumentalProtocolStrategy>::halt();
-            System::assert_last_event(Event::PabloStrategy(pallet::Event::Halted));
+            halting();
         });
     }
 
@@ -234,26 +230,7 @@ mod halt {
     fn rebalance_halted() {
         ExtBuilder::default().build().execute_with(|| {
             System::set_block_number(1);
-            let base_asset = CurrencyId::LAYR;
-
-            // Create Vault (LAYR)
-            let vault_id = create_vault(base_asset, None);
-
-            // Create Pool (LAYR/CROWD_LOAN)
-            let pool_id = create_pool(base_asset, None, None, None, None, None);
-
-            let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
-                asset_id: base_asset,
-                pool_id,
-            });
-            set_admin_members(vec![ALICE], 5);
-            make_proposal(proposal, ALICE, 1, 0, None);
-
-            let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
-            make_proposal(proposal, ALICE, 1, 0, None);
-
-            <PabloStrategy as InstrumentalProtocolStrategy>::halt();
-            System::assert_last_event(Event::PabloStrategy(pallet::Event::Halted));
+            halting();
 
             assert_noop!(PabloStrategy::rebalance(), Error::<MockRuntime>::Halted,);
         });
@@ -263,26 +240,7 @@ mod halt {
     fn halt_and_continue() {
         ExtBuilder::default().build().execute_with(|| {
             System::set_block_number(1);
-            let base_asset = CurrencyId::LAYR;
-
-            // Create Vault (LAYR)
-            let vault_id = create_vault(base_asset, None);
-
-            // Create Pool (LAYR/CROWD_LOAN)
-            let pool_id = create_pool(base_asset, None, None, None, None, None);
-
-            let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
-                asset_id: base_asset,
-                pool_id,
-            });
-            set_admin_members(vec![ALICE], 5);
-            make_proposal(proposal, ALICE, 1, 0, None);
-
-            let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
-            make_proposal(proposal, ALICE, 1, 0, None);
-
-            <PabloStrategy as InstrumentalProtocolStrategy>::halt();
-            System::assert_last_event(Event::PabloStrategy(pallet::Event::Halted));
+            halting();
 
             assert_noop!(PabloStrategy::rebalance(), Error::<MockRuntime>::Halted,);
 
