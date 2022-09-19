@@ -1,4 +1,4 @@
-use frame_support::assert_ok;
+use frame_support::{assert_noop, assert_ok};
 use primitives::currency::CurrencyId;
 use sp_core::H256;
 use sp_runtime::traits::{BlakeTwo256, Hash};
@@ -8,13 +8,16 @@ use traits::strategy::InstrumentalProtocolStrategy;
 use crate::{
     mock::{
         account_id::{ADMIN, ALICE, BOB},
-        helpers::{assert_has_event, create_pool, create_vault, make_proposal, set_admin_members},
+        helpers::{
+            assert_has_event, assert_last_event, create_pool, create_vault, make_proposal,
+            set_admin_members,
+        },
         runtime::{
             Balance, Call, Event, ExtBuilder, MockRuntime, PabloStrategy, System, VaultId,
             MAX_ASSOCIATED_VAULTS,
         },
     },
-    pallet,
+    pallet, Error,
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -192,6 +195,107 @@ mod set_pool_id_for_asset {
                 pool_id,
             });
             make_proposal(proposal, ALICE, 2, 0, Some(&[ALICE]));
+        });
+    }
+}
+
+#[cfg(test)]
+mod halt {
+    use super::*;
+
+    #[test]
+    fn halt() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            let base_asset = CurrencyId::LAYR;
+
+            // Create Vault (LAYR)
+            let vault_id = create_vault(base_asset, None);
+
+            // Create Pool (LAYR/CROWD_LOAN)
+            let pool_id = create_pool(base_asset, None, None, None, None, None);
+
+            let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
+                asset_id: base_asset,
+                pool_id,
+            });
+            set_admin_members(vec![ALICE], 5);
+            make_proposal(proposal, ALICE, 1, 0, None);
+
+            let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
+            make_proposal(proposal, ALICE, 1, 0, None);
+
+            <PabloStrategy as InstrumentalProtocolStrategy>::halt();
+            System::assert_last_event(Event::PabloStrategy(pallet::Event::Halted));
+        });
+    }
+
+    #[test]
+    fn rebalance_halted() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            let base_asset = CurrencyId::LAYR;
+
+            // Create Vault (LAYR)
+            let vault_id = create_vault(base_asset, None);
+
+            // Create Pool (LAYR/CROWD_LOAN)
+            let pool_id = create_pool(base_asset, None, None, None, None, None);
+
+            let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
+                asset_id: base_asset,
+                pool_id,
+            });
+            set_admin_members(vec![ALICE], 5);
+            make_proposal(proposal, ALICE, 1, 0, None);
+
+            let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
+            make_proposal(proposal, ALICE, 1, 0, None);
+
+            <PabloStrategy as InstrumentalProtocolStrategy>::halt();
+            System::assert_last_event(Event::PabloStrategy(pallet::Event::Halted));
+
+            assert_noop!(PabloStrategy::rebalance(), Error::<MockRuntime>::Halted,);
+        });
+    }
+
+    #[test]
+    fn halt_and_continue() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            let base_asset = CurrencyId::LAYR;
+
+            // Create Vault (LAYR)
+            let vault_id = create_vault(base_asset, None);
+
+            // Create Pool (LAYR/CROWD_LOAN)
+            let pool_id = create_pool(base_asset, None, None, None, None, None);
+
+            let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
+                asset_id: base_asset,
+                pool_id,
+            });
+            set_admin_members(vec![ALICE], 5);
+            make_proposal(proposal, ALICE, 1, 0, None);
+
+            let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
+            make_proposal(proposal, ALICE, 1, 0, None);
+
+            <PabloStrategy as InstrumentalProtocolStrategy>::halt();
+            System::assert_last_event(Event::PabloStrategy(pallet::Event::Halted));
+
+            assert_noop!(PabloStrategy::rebalance(), Error::<MockRuntime>::Halted,);
+
+            <PabloStrategy as InstrumentalProtocolStrategy>::start();
+            System::assert_last_event(Event::PabloStrategy(pallet::Event::Unhalted));
+
+            assert_ok!(PabloStrategy::rebalance());
+            assert_last_event::<MockRuntime, _>(|e| {
+                matches!(
+                    e.event,
+                    Event::PabloStrategy(pallet::Event::RebalancedVault { .. })
+                )
+            });
         });
     }
 }

@@ -184,6 +184,10 @@ pub mod pallet {
     pub type Pools<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AssetId, PoolState<T::PoolId, State>>;
 
+    #[pallet::storage]
+    #[allow(clippy::disallowed_types)]
+    pub type Halted<T: Config> = StorageValue<_, bool, ValueQuery>;
+
     // ---------------------------------------------------------------------------------------------
     //                                          Runtime Events
     // ---------------------------------------------------------------------------------------------
@@ -207,6 +211,12 @@ pub mod pallet {
             asset_id: T::AssetId,
             pool_id: T::PoolId,
         },
+
+        // The event is deposited when the strategy is halted.
+        Halted,
+
+        // The event is deposited when the strategy is started again after halting.
+        Unhalted,
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -223,6 +233,9 @@ pub mod pallet {
         PoolNotFound,
         // Occurs when we try to set a new pool_id, during a transferring from or to an old one
         TransferringInProgress,
+        // Occurs when the strategy is halted, and someone is trying to perform any operations
+        // (only rebalancing actually) with it
+        Halted,
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -272,6 +285,26 @@ pub mod pallet {
         pub fn liquidity_rebalance(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             T::ExternalOrigin::ensure_origin(origin)?;
             <Self as InstrumentalProtocolStrategy>::rebalance()?;
+            Ok(().into())
+        }
+
+        /// Halt the strategy.
+        ///
+        /// Emits [`Halted`](Event::Halted) event when successful.
+        #[pallet::weight(T::WeightInfo::halt())]
+        pub fn halt(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            T::ExternalOrigin::ensure_origin(origin)?;
+            <Self as InstrumentalProtocolStrategy>::halt();
+            Ok(().into())
+        }
+
+        /// Continue the strategy after halting.
+        ///
+        /// Emits [`Unhalted`](Event::Unhalted) event when successful.
+        #[pallet::weight(T::WeightInfo::start())]
+        pub fn start(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            T::ExternalOrigin::ensure_origin(origin)?;
+            <Self as InstrumentalProtocolStrategy>::start();
             Ok(().into())
         }
     }
@@ -337,6 +370,9 @@ pub mod pallet {
 
         #[transactional]
         fn rebalance() -> DispatchResult {
+            if Self::is_halted() {
+                return Err(Error::<T>::Halted.into());
+            }
             AssociatedVaults::<T>::try_mutate(|vaults| -> DispatchResult {
                 vaults.iter().for_each(|vault_id| {
                     if Self::do_rebalance(vault_id).is_ok() {
@@ -356,6 +392,20 @@ pub mod pallet {
 
         fn get_apy(_asset: Self::AssetId) -> Result<u128, DispatchError> {
             Ok(0)
+        }
+
+        fn halt() {
+            Halted::<T>::put(true);
+            Self::deposit_event(Event::Halted);
+        }
+
+        fn start() {
+            Halted::<T>::put(false);
+            Self::deposit_event(Event::Unhalted);
+        }
+
+        fn is_halted() -> bool {
+            Halted::<T>::get()
         }
     }
 

@@ -17,4 +17,10 @@ pub trait InstrumentalProtocolStrategy {
     fn get_apy(asset: Self::AssetId) -> Result<u128, DispatchError>;
 
     fn set_pool_id_for_asset(asset_id: Self::AssetId, pool_id: Self::PoolId) -> DispatchResult;
+
+    fn halt();
+
+    fn start();
+
+    fn is_halted() -> bool;
 }

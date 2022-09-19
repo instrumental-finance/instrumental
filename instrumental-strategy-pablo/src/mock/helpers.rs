@@ -166,3 +166,11 @@ where
 {
     assert!(System::events().iter().any(matcher));
 }
+
+pub fn assert_last_event<T, F>(matcher: F)
+where
+    T: Config,
+    F: FnOnce(&EventRecord<Event, H256>) -> bool,
+{
+    assert!(matcher(System::events().last().expect("events expected")));
+}

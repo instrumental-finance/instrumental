@@ -295,6 +295,18 @@ pub mod pallet {
 
             T::PabloStrategy::get_apy(asset)
         }
+
+        fn halt() {
+            unimplemented!()
+        }
+
+        fn start() {
+            unimplemented!()
+        }
+
+        fn is_halted() -> bool {
+            unimplemented!()
+        }
     }
 }
 
