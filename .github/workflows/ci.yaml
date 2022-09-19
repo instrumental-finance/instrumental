@@ -36,6 +36,7 @@ jobs:
           args: |
             --workspace
             --all-features
+            --all-targets
             -- -D warnings
 
   test:
@@ -67,6 +68,7 @@ jobs:
             run
             --workspace
             --all-features
+            --all-targets
 
   fmt:
     name: Run cargo +nightly fmt
