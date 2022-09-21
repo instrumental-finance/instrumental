@@ -296,11 +296,11 @@ pub mod pallet {
             T::PabloStrategy::get_apy(asset)
         }
 
-        fn halt() {
+        fn halt() -> DispatchResult {
             unimplemented!()
         }
 
-        fn start() {
+        fn start() -> DispatchResult {
             unimplemented!()
         }
 
