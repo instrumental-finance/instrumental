@@ -32,7 +32,10 @@ pub mod pallet {
     // ---------------------------------------------------------------------------------------------
 
     use codec::{Codec, FullCodec};
-    use composable_traits::{dex::Amm, vault::StrategicVault};
+    use composable_traits::{
+        dex::Amm,
+        vault::{CapabilityVault, StrategicVault},
+    };
     use frame_support::{
         dispatch::{DispatchError, DispatchResult},
         pallet_prelude::*,
@@ -111,11 +114,16 @@ pub mod pallet {
             + Into<u128>;
 
         type Vault: StrategicVault<
-            AssetId = Self::AssetId,
-            Balance = Self::Balance,
-            AccountId = Self::AccountId,
-            VaultId = Self::VaultId,
-        >;
+                AssetId = Self::AssetId,
+                Balance = Self::Balance,
+                AccountId = Self::AccountId,
+                VaultId = Self::VaultId,
+            > + CapabilityVault<
+                AccountId = Self::AccountId,
+                AssetId = Self::AssetId,
+                Balance = Self::Balance,
+                VaultId = Self::VaultId,
+            >;
 
         /// The [`Currency`](Config::Currency).
         ///
@@ -294,7 +302,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::halt())]
         pub fn halt(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             T::ExternalOrigin::ensure_origin(origin)?;
-            <Self as InstrumentalProtocolStrategy>::halt();
+            <Self as InstrumentalProtocolStrategy>::halt()?;
             Ok(().into())
         }
 
@@ -304,7 +312,7 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::start())]
         pub fn start(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
             T::ExternalOrigin::ensure_origin(origin)?;
-            <Self as InstrumentalProtocolStrategy>::start();
+            <Self as InstrumentalProtocolStrategy>::start()?;
             Ok(().into())
         }
     }
@@ -394,14 +402,22 @@ pub mod pallet {
             Ok(0)
         }
 
-        fn halt() {
+        fn halt() -> DispatchResult {
+            for vault_id in AssociatedVaults::<T>::get().iter() {
+                <T::Vault as CapabilityVault>::stop(vault_id)?;
+            }
             Halted::<T>::put(true);
             Self::deposit_event(Event::Halted);
+            Ok(())
         }
 
-        fn start() {
+        fn start() -> DispatchResult {
+            for vault_id in AssociatedVaults::<T>::get().iter() {
+                <T::Vault as CapabilityVault>::start(vault_id)?;
+            }
             Halted::<T>::put(false);
             Self::deposit_event(Event::Unhalted);
+            Ok(())
         }
 
         fn is_halted() -> bool {

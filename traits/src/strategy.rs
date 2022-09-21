@@ -18,9 +18,9 @@ pub trait InstrumentalProtocolStrategy {
 
     fn set_pool_id_for_asset(asset_id: Self::AssetId, pool_id: Self::PoolId) -> DispatchResult;
 
-    fn halt();
+    fn halt() -> DispatchResult;
 
-    fn start();
+    fn start() -> DispatchResult;
 
     fn is_halted() -> bool;
 }

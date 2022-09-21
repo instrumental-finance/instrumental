@@ -214,7 +214,7 @@ mod halt {
     fn halting() {
         prepare_for_rebalancing();
 
-        <PabloStrategy as InstrumentalProtocolStrategy>::halt();
+        assert_ok!(<PabloStrategy as InstrumentalProtocolStrategy>::halt());
         System::assert_last_event(Event::PabloStrategy(pallet::Event::Halted));
     }
 
@@ -237,6 +237,24 @@ mod halt {
     }
 
     #[test]
+    #[ignore = "TODO(saruman9): test helpers are needed"]
+    fn withdraw_from_halted_vault() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            halting();
+        });
+    }
+
+    #[test]
+    #[ignore = "TODO(saruman9): test helpers are needed"]
+    fn deposit_to_halted_vault() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            halting();
+        });
+    }
+
+    #[test]
     fn halt_and_continue() {
         ExtBuilder::default().build().execute_with(|| {
             System::set_block_number(1);
@@ -244,7 +262,7 @@ mod halt {
 
             assert_noop!(PabloStrategy::rebalance(), Error::<MockRuntime>::Halted,);
 
-            <PabloStrategy as InstrumentalProtocolStrategy>::start();
+            assert_ok!(<PabloStrategy as InstrumentalProtocolStrategy>::start());
             System::assert_last_event(Event::PabloStrategy(pallet::Event::Unhalted));
 
             assert_ok!(PabloStrategy::rebalance());
