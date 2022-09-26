@@ -137,3 +137,28 @@ jobs:
             --all-features
             --no-deps
             --document-private-items
+
+  udeps:
+    name: Run cargo udeps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install nightly toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          # https://github.com/Swatinem/rust-cache#cache-effectiveness
+          toolchain: nightly-2022-09-14
+          profile: minimal
+          default: true
+
+      - name: Install udeps
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-udeps
+          version: 0.1.34
+          use-tool-cache: true
+
+      - name: Run command
+        run: cargo udeps --workspace --all-targets --all-features
