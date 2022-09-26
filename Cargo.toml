@@ -3,5 +3,6 @@ members = [
   "instrumental",
   "instrumental-strategy",
   "instrumental-strategy-pablo",
+  "instrumental-strategy-default",
   "traits",
 ]
