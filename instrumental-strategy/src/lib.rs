@@ -66,7 +66,7 @@ pub mod pallet {
 
         type WeightInfo: WeightInfo;
 
-        /// The [`Balance`](Config::Balance) type used by the pallet for bookkeeping.
+        /// The type used by the pallet for bookkeeping.
         type Balance: Default
             + Parameter
             + Codec
@@ -79,6 +79,7 @@ pub mod pallet {
             + AtLeast32BitUnsigned
             + Zero;
 
+        /// The ID that uniquely identify an asset.
         type AssetId: FullCodec
             + MaxEncodedLen
             + Eq
@@ -89,8 +90,7 @@ pub mod pallet {
             + Default
             + TypeInfo;
 
-        /// The [`VaultId`](Config::VaultId) used by the pallet. Corresponds to the Ids used by the
-        /// Vault pallet.
+        /// Corresponds to the Ids used by the Vault pallet.
         type VaultId: FullCodec
             + MaxEncodedLen
             + Eq
@@ -103,6 +103,7 @@ pub mod pallet {
             + TypeInfo
             + Into<u128>;
 
+        /// Vault used in strategy to obtain funds from, report balances and return funds to.
         type Vault: StrategicVault<
             AssetId = Self::AssetId,
             Balance = Self::Balance,
@@ -155,6 +156,7 @@ pub mod pallet {
     // TODO: (Nevin)
     //  - we need to store all vaults that are associated with this strategy
 
+    /// The storage where we store all the vault's IDs that are associated with this strategy.
     #[pallet::storage]
     #[pallet::getter(fn associated_vaults)]
     #[allow(clippy::disallowed_types)]
@@ -168,18 +170,25 @@ pub mod pallet {
     //                                          Runtime Events
     // ---------------------------------------------------------------------------------------------
 
+    /// Pallets use events to inform users when important changes are made.
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        AssociatedVault { vault_id: T::VaultId },
+        /// Vault successfully associated with this strategy.
+        AssociatedVault {
+            /// Vault ID of associated vault.
+            vault_id: T::VaultId,
+        },
     }
 
     // ---------------------------------------------------------------------------------------------
     //                                          Runtime Errors
     // ---------------------------------------------------------------------------------------------
 
+    /// Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
+        /// The Vault already associated with this strategy. See [`AssociatedVaults`] for details.
         VaultAlreadyAssociated,
 
         TooManyAssociatedStrategies,

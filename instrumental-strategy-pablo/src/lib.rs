@@ -70,11 +70,12 @@ pub mod pallet {
         #[allow(missing_docs)]
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
+        /// Some sort of check on the origin is performed by this object.
         type ExternalOrigin: EnsureOrigin<Self::Origin>;
 
         type WeightInfo: WeightInfo;
 
-        /// The [`Balance`](Config::Balance) type used by the pallet for bookkeeping.
+        /// The type used by the pallet for bookkeeping.
         type Balance: Default
             + Parameter
             + Codec
@@ -87,8 +88,7 @@ pub mod pallet {
             + AtLeast32BitUnsigned
             + Zero;
 
-        /// The [`AssetId`](Config::AssetId) used by the pallet. Corresponds to the Ids used by the
-        /// Currency pallet.
+        /// The ID that uniquely identify an asset.
         type AssetId: FullCodec
             + MaxEncodedLen
             + Eq
@@ -99,8 +99,7 @@ pub mod pallet {
             + Default
             + TypeInfo;
 
-        /// The [`VaultId`](Config::VaultId) used by the pallet. Corresponds to the Ids used by the
-        /// Vault pallet.
+        /// Corresponds to the Ids used by the Vault pallet.
         type VaultId: FullCodec
             + MaxEncodedLen
             + Eq
@@ -113,6 +112,7 @@ pub mod pallet {
             + TypeInfo
             + Into<u128>;
 
+        /// Vault used in strategy to obtain funds from, report balances and return funds to.
         type Vault: StrategicVault<
                 AssetId = Self::AssetId,
                 Balance = Self::Balance,
@@ -125,13 +125,12 @@ pub mod pallet {
                 VaultId = Self::VaultId,
             >;
 
-        /// The [`Currency`](Config::Currency).
-        ///
         /// Currency is used for the assets managed by the vaults.
         type Currency: Transfer<Self::AccountId, Balance = Self::Balance, AssetId = Self::AssetId>
             + Mutate<Self::AccountId, Balance = Self::Balance, AssetId = Self::AssetId>
             + MutateHold<Self::AccountId, Balance = Self::Balance, AssetId = Self::AssetId>;
 
+        /// Used for interacting with Pablo pallet.
         type Pablo: Amm<
             AssetId = Self::AssetId,
             Balance = Self::Balance,
@@ -178,6 +177,7 @@ pub mod pallet {
     //                                          Runtime Storage
     // ---------------------------------------------------------------------------------------------
 
+    /// The storage where we store all the vault's IDs that are associated with this strategy.
     #[pallet::storage]
     #[pallet::getter(fn associated_vaults)]
     #[allow(clippy::disallowed_types)]
@@ -192,6 +192,7 @@ pub mod pallet {
     pub type Pools<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AssetId, PoolState<T::PoolId, State>>;
 
+    /// Stores information about whether the strategy is halted or not.
     #[pallet::storage]
     #[allow(clippy::disallowed_types)]
     pub type Halted<T: Config> = StorageValue<_, bool, ValueQuery>;
@@ -200,18 +201,23 @@ pub mod pallet {
     //                                          Runtime Events
     // ---------------------------------------------------------------------------------------------
 
+    /// Pallets use events to inform users when important changes are made.
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// Vault successfully associated with this strategy.
         AssociatedVault {
+            /// Vault ID of associated vault.
             vault_id: T::VaultId,
         },
 
         RebalancedVault {
+            /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
         UnableToRebalanceVault {
+            /// Vault ID of vault that can't be rebalanced.
             vault_id: T::VaultId,
         },
 
@@ -220,10 +226,10 @@ pub mod pallet {
             pool_id: T::PoolId,
         },
 
-        // The event is deposited when the strategy is halted.
+        /// The event is deposited when the strategy is halted.
         Halted,
 
-        // The event is deposited when the strategy is started again after halting.
+        /// The event is deposited when the strategy is started again after halting.
         Unhalted,
     }
 
@@ -231,18 +237,28 @@ pub mod pallet {
     //                                          Runtime Errors
     // ---------------------------------------------------------------------------------------------
 
+    /// Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
+        /// The Vault already associated with this strategy. See [`AssociatedVaults`] for details.
         VaultAlreadyAssociated,
 
+        /// Exceeds the maximum number of vaults that can be associated with this strategy. See
+        /// [`Config::MaxAssociatedVaults`] for details.
         TooManyAssociatedStrategies,
-        // TODO(belousm): only for MVP version we can assume the `pool_id` is already known and
-        // exist. We should remove it in V1.
+
+        /// TODO(belousm): only for MVP version we can assume the `pool_id` is already known and
+        /// exist. We should remove it in V1.
         PoolNotFound,
-        // Occurs when we try to set a new pool_id, during a transferring from or to an old one
+
+        /// Occurs when we try to set a new pool_id, during a transferring from or to an old one
         TransferringInProgress,
-        // Occurs when the strategy is halted, and someone is trying to perform any operations
-        // (only rebalancing actually) with it
+
+        /// Storage is not initialized (have `None` value).
+        StorageIsNotInitialized,
+
+        /// Occurs when the strategy is halted, and someone is trying to perform any operations
+        /// (only rebalancing actually) with it
         Halted,
     }
 
@@ -259,9 +275,9 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Add [`VaultId`](Config::VaultId) to [`AssociatedVaults`](AssociatedVaults) storage.
+        /// Add [`Config::VaultId`] to [`AssociatedVaults`] storage.
         ///
-        /// Emits [`AssociatedVault`](Event::AssociatedVault) event when successful.
+        /// Emits [`Event::AssociatedVault`] event when successful.
         #[pallet::weight(T::WeightInfo::associate_vault())]
         pub fn associate_vault(
             origin: OriginFor<T>,
