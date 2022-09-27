@@ -1,27 +1,25 @@
 [package]
 name = "pallet-instrumental-strategy-default"
-authors = ["Composable Developers"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 description = "TBD"
-version = "0.1.0"
-license = "Unlicense"
-homepage = "https://instrumental.finance"
-edition = "2021"
-
-[package.metadata.docs.rs]
-targets = ["x86_64-unknown-linux-gnu"]
+homepage.workspace = true
+license.workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-scale-info = { version = "2", default-features = false, features = ["derive"] }
-sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+# FIXME(saruman9): inheriting a `package` field from a workspace doesn't work
+codec = { workspace = true, package = "parity-scale-codec" }
+frame-support.workspace = true
+frame-system.workspace = true
+scale-info.workspace = true
+sp-arithmetic.workspace = true
+sp-core.workspace = true
+sp-io.workspace = true
+sp-runtime.workspace = true
+sp-std.workspace = true
 
-composable-traits = { git = "https://github.com/composableFi/composable", rev = "08fc9fe3", default-features = false }
+composable-traits.workspace = true
 
 traits = { path = "../traits", default-features = false }
 
