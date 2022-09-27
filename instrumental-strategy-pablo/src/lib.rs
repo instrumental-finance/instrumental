@@ -32,15 +32,16 @@ pub mod pallet {
     // ---------------------------------------------------------------------------------------------
 
     use codec::{Codec, FullCodec};
+    use composable_support::math::safe::SafeDiv;
     use composable_traits::{
         dex::Amm,
-        vault::{CapabilityVault, StrategicVault},
+        vault::{CapabilityVault, FundsAvailability, StrategicVault, Vault},
     };
     use frame_support::{
         dispatch::{DispatchError, DispatchResult},
         pallet_prelude::*,
         storage::bounded_btree_set::BoundedBTreeSet,
-        traits::fungibles::{Mutate, MutateHold, Transfer},
+        traits::fungibles::{Inspect, Mutate, MutateHold, Transfer},
         transactional, Blake2_128Concat, PalletId, RuntimeDebug,
     };
     use frame_system::pallet_prelude::OriginFor;
@@ -211,6 +212,22 @@ pub mod pallet {
             vault_id: T::VaultId,
         },
 
+        WithdrawFunctionalityOccuredDuringRebalance {
+            vault_id: T::VaultId,
+        },
+
+        DepositFunctionalityOccuredDuringRebalance {
+            vault_id: T::VaultId,
+        },
+
+        LiquidateFunctionalityOccuredDuringRebalance {
+            vault_id: T::VaultId,
+        },
+
+        NoneFunctionalityOccuredDuringRebalance {
+            vault_id: T::VaultId,
+        },
+
         UnableToRebalanceVault {
             vault_id: T::VaultId,
         },
@@ -244,6 +261,8 @@ pub mod pallet {
         // Occurs when the strategy is halted, and someone is trying to perform any operations
         // (only rebalancing actually) with it
         Halted,
+        // No strategy is associated with the Vault.
+        NoStrategies,
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -430,9 +449,90 @@ pub mod pallet {
     // ---------------------------------------------------------------------------------------------
 
     impl<T: Config> Pallet<T> {
-        fn do_rebalance(_vault_id: &T::VaultId) -> DispatchResult {
-            // TODO(saruman9): reimplement
+        fn do_rebalance(vault_id: &T::VaultId) -> DispatchResult {
+            let asset_id = T::Vault::asset_id(vault_id)?;
+            let strategy_vaults = T::Vault::get_strategies(vault_id)?;
+            let strategy_vault_account = strategy_vaults.last().ok_or(Error::<T>::NoStrategies)?.0;
+            let pool_id_and_state = Self::pools(asset_id).ok_or(Error::<T>::PoolNotFound)?;
+            let pool_id = pool_id_and_state.pool_id;
+            match T::Vault::available_funds(vault_id, &Self::account_id())? {
+                FundsAvailability::Withdrawable(balance) => {
+                    Self::withdraw(vault_id, &strategy_vault_account, pool_id, balance)?;
+                    Self::deposit_event(Event::WithdrawFunctionalityOccuredDuringRebalance {
+                        vault_id: *vault_id,
+                    });
+                }
+                FundsAvailability::Depositable(balance) => {
+                    Self::deposit(vault_id, &strategy_vault_account, pool_id, balance)?;
+                    Self::deposit_event(Event::DepositFunctionalityOccuredDuringRebalance {
+                        vault_id: *vault_id,
+                    });
+                }
+                FundsAvailability::MustLiquidate => {
+                    Self::liquidate(vault_id, &strategy_vault_account, pool_id)?;
+                    Self::deposit_event(Event::LiquidateFunctionalityOccuredDuringRebalance {
+                        vault_id: *vault_id,
+                    });
+                }
+                FundsAvailability::None => {
+                    Self::deposit_event(Event::NoneFunctionalityOccuredDuringRebalance {
+                        vault_id: *vault_id,
+                    });
+                }
+            };
             Ok(())
+        }
+
+        fn withdraw(
+            vault_id: &T::VaultId,
+            vault_strategy_account: &T::AccountId,
+            pool_id: T::PoolId,
+            balance: T::Balance,
+        ) -> DispatchResult {
+            <T::Vault as StrategicVault>::withdraw(vault_id, vault_strategy_account, balance)?;
+            T::Pablo::add_liquidity(
+                vault_strategy_account,
+                pool_id,
+                balance,
+                T::Balance::zero(),
+                T::Balance::zero(),
+                true,
+            )
+        }
+
+        fn deposit(
+            vault_id: &T::VaultId,
+            vault_strategy_account: &T::AccountId,
+            pool_id: T::PoolId,
+            balance: T::Balance,
+        ) -> DispatchResult {
+            let lp_price = T::Pablo::get_price_of_lp_token(pool_id)?;
+            let lp_redeem = balance.safe_div(&lp_price)?;
+            T::Pablo::remove_liquidity_single_asset(
+                vault_strategy_account,
+                pool_id,
+                lp_redeem,
+                T::Balance::zero(),
+            )?;
+            <T::Vault as StrategicVault>::deposit(vault_id, vault_strategy_account, balance)
+        }
+
+        fn liquidate(
+            vault_id: &T::VaultId,
+            vault_strategy_account: &T::AccountId,
+            pool_id: T::PoolId,
+        ) -> DispatchResult {
+            let lp_token_id = T::Pablo::lp_token(pool_id)?;
+            let balance_of_lp_token = T::Currency::balance(lp_token_id, vault_strategy_account);
+            T::Pablo::remove_liquidity_single_asset(
+                vault_strategy_account,
+                pool_id,
+                balance_of_lp_token,
+                T::Balance::zero(),
+            )?;
+            let balance =
+                T::Currency::balance(T::Vault::asset_id(vault_id)?, vault_strategy_account);
+            <T::Vault as StrategicVault>::deposit(vault_id, vault_strategy_account, balance)
         }
     }
 }
