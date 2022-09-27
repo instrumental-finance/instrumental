@@ -1,20 +1,20 @@
-use frame_support::{assert_noop, assert_ok, traits::fungibles::{Inspect, Mutate}};
+use frame_support::{assert_noop, assert_ok, traits::fungibles::Mutate};
 use primitives::currency::CurrencyId;
 use sp_core::H256;
-use sp_runtime::traits::{BlakeTwo256, Hash};
+use sp_runtime::{traits::{BlakeTwo256, Hash}, Perquintill};
 use sp_std::collections::btree_set::BTreeSet;
 use traits::strategy::InstrumentalProtocolStrategy;
-use composable_traits::vault::{CapabilityVault, StrategicVault as StrategicVaultTrait, Vault as VaultTrait};
+use composable_traits::vault::{CapabilityVault};
 
 use crate::{
     mock::{
         account_id::{ADMIN, ALICE, BOB},
         helpers::{
             assert_has_event, assert_last_event, create_pool, create_vault, make_proposal,
-            set_admin_members,
+            set_admin_members, set_pool_id_for_asset, liquidity_rebalance, associate_vault,
         },
         runtime::{
-            Balance, Call, Event, ExtBuilder, MockRuntime, PabloStrategy, System, VaultId, Vault, Tokens,
+            Balance, Call, Event, ExtBuilder, MockRuntime, PabloStrategy, System, VaultId, Vault, Tokens, Origin,
             MAX_ASSOCIATED_VAULTS,
         },
     },
@@ -134,8 +134,6 @@ mod associate_vault {
 
 #[cfg(test)]
 mod rebalance {
-	use crate::mock::runtime::Assets;
-
 	use super::*;
 
 	#[test]
