@@ -38,5 +38,5 @@ pub trait InstrumentalProtocolStrategy {
 
     fn start() -> DispatchResult;
 
-    fn is_halted() -> bool;
+    fn is_halted() -> Result<bool, DispatchError>;
 }

@@ -419,6 +419,12 @@ impl ExtBuilder {
             .build_storage::<MockRuntime>()
             .unwrap();
 
+        <pallet_instrumental_strategy_pablo::GenesisConfig as GenesisBuild<MockRuntime>>
+            ::assimilate_storage(
+                &pallet_instrumental_strategy_pablo::GenesisConfig::default(),
+                &mut storage)
+            .unwrap();
+
         pallet_balances::GenesisConfig::<MockRuntime> {
             balances: self.native_balances,
         }

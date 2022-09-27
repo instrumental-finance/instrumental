@@ -40,7 +40,10 @@ pub mod pallet {
         dispatch::{DispatchError, DispatchResult},
         pallet_prelude::*,
         storage::bounded_btree_set::BoundedBTreeSet,
-        traits::fungibles::{Mutate, MutateHold, Transfer},
+        traits::{
+            fungibles::{Mutate, MutateHold, Transfer},
+            GenesisBuild,
+        },
         transactional, Blake2_128Concat, PalletId, RuntimeDebug,
     };
     use frame_system::pallet_prelude::OriginFor;
@@ -194,8 +197,24 @@ pub mod pallet {
 
     /// Stores information about whether the strategy is halted or not.
     #[pallet::storage]
-    #[allow(clippy::disallowed_types)]
-    pub type Halted<T: Config> = StorageValue<_, bool, ValueQuery>;
+    pub type Halted<T: Config> = StorageValue<_, bool>;
+
+    // ---------------------------------------------------------------------------------------------
+    //                                           Genesis config
+    // ---------------------------------------------------------------------------------------------
+
+    #[pallet::genesis_config]
+    #[derive(Default)]
+    pub struct GenesisConfig {
+        pub is_halted: bool,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+        fn build(&self) {
+            Halted::<T>::put(self.is_halted);
+        }
+    }
 
     // ---------------------------------------------------------------------------------------------
     //                                          Runtime Events
@@ -394,7 +413,7 @@ pub mod pallet {
 
         #[transactional]
         fn rebalance() -> DispatchResult {
-            if Self::is_halted() {
+            if Self::is_halted()? {
                 return Err(Error::<T>::Halted.into());
             }
             AssociatedVaults::<T>::try_mutate(|vaults| -> DispatchResult {
@@ -436,8 +455,8 @@ pub mod pallet {
             Ok(())
         }
 
-        fn is_halted() -> bool {
-            Halted::<T>::get()
+        fn is_halted() -> Result<bool, DispatchError> {
+            Halted::<T>::get().ok_or_else(|| Error::<T>::StorageIsNotInitialized.into())
         }
     }
 
