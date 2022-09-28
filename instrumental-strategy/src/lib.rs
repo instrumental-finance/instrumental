@@ -36,8 +36,11 @@ pub mod pallet {
     use frame_support::{
         pallet_prelude::*, storage::bounded_btree_set::BoundedBTreeSet, transactional, PalletId,
     };
-    use sp_runtime::traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
+    use sp_runtime::{
+        traits::{
+            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
+        },
+        Percent,
     };
     use sp_std::fmt::Debug;
     use traits::{
@@ -314,6 +317,15 @@ pub mod pallet {
         }
 
         fn is_halted() -> Result<bool, DispatchError> {
+            unimplemented!()
+        }
+
+        fn transferring_funds(
+            _vault_id: &Self::VaultId,
+            _asset_id: Self::AssetId,
+            _new_pool_id: Self::PoolId,
+            _percentage_of_funds: Percent,
+        ) -> DispatchResult {
             unimplemented!()
         }
     }
