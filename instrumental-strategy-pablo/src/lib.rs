@@ -265,7 +265,9 @@ pub mod pallet {
             pool_id: T::PoolId,
         },
 
-        FundsTransfferedToNewPool { new_pool_id: T::PoolId },
+        FundsTransfferedToNewPool {
+            new_pool_id: T::PoolId,
+        },
 
         /// The event is deposited when the strategy is halted.
         Halted,

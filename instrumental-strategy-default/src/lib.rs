@@ -37,7 +37,7 @@ pub mod pallet {
     use composable_traits::vault::{CapabilityVault, StrategicVault};
     use frame_support::{
         ensure,
-        pallet_prelude::{DispatchResultWithPostInfo, MaybeSerializeDeserialize},
+        pallet_prelude::{DispatchResultWithPostInfo, MaybeSerializeDeserialize, ValueQuery},
         storage::types::StorageValue,
         traits::{EnsureOrigin, GenesisBuild, Get, IsType},
         BoundedBTreeSet, PalletId, Parameter,
@@ -162,7 +162,7 @@ pub mod pallet {
 
     /// Stores information about whether the strategy is halted or not.
     #[pallet::storage]
-    pub type Halted<T: Config> = StorageValue<_, bool>;
+    pub type Halted<T: Config> = StorageValue<_, bool, ValueQuery>;
 
     // ---------------------------------------------------------------------------------------------
     //                                           Genesis config
@@ -337,8 +337,17 @@ pub mod pallet {
             Ok(())
         }
 
-        fn is_halted() -> Result<bool, DispatchError> {
-            Halted::<T>::get().ok_or_else(|| Error::<T>::StorageIsNotInitialized.into())
+        fn is_halted() -> bool {
+            Halted::<T>::get()
+        }
+
+        fn transferring_funds(
+                _vault_id: &Self::VaultId,
+                _asset_id: Self::AssetId,
+                _new_pool_id: Self::PoolId,
+                _percentage_of_funds: sp_runtime::Percent,
+            ) -> DispatchResult {
+            Ok(())
         }
     }
 }
