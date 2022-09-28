@@ -318,9 +318,9 @@ parameter_types! {
 impl pallet_instrumental_strategy_pablo::Config for MockRuntime {
     type AssetId = CurrencyId;
     type Balance = Balance;
+    type Convert = ConvertInto;
     type Currency = Tokens;
     type Event = Event;
-    type Convert = ConvertInto;
     type ExternalOrigin = EnsureProportionAtLeast<AccountId, InstrumentalPabloCollective, 2, 3>;
     type MaxAssociatedVaults = MaxAssociatedVaults;
     type Pablo = Pablo;
