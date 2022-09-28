@@ -369,8 +369,9 @@ pub mod pallet {
         }
 
         /// Makes a transfer of funds from one pool to another by batches.
-        /// 
-        /// Emits [`FundsTransfferedToNewPool`](Event::FundsTransfferedToNewPool) event when successful.
+        ///
+        /// Emits [`FundsTransfferedToNewPool`](Event::FundsTransfferedToNewPool) event when
+        /// successful.
         #[pallet::weight(T::WeightInfo::transferring_funds())]
         pub fn transferring_funds(
             origin: OriginFor<T>,
