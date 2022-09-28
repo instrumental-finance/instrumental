@@ -201,7 +201,7 @@ pub mod pallet {
 
     /// Stores information about whether the strategy is halted or not.
     #[pallet::storage]
-    pub type Halted<T: Config> = StorageValue<_, bool, ValueQuery>;
+    pub type Halted<T: Config> = StorageValue<_, bool>;
 
     // ---------------------------------------------------------------------------------------------
     //                                           Genesis config
@@ -293,12 +293,18 @@ pub mod pallet {
         /// TODO(belousm): only for MVP version we can assume the `pool_id` is already known and
         /// exist. We should remove it in V1.
         PoolNotFound,
-        // Occurs when we try to set a new pool_id, during a transferring from or to an old one.
+
+        /// Occurs when we try to set a new pool_id, during a transferring from or to an old one.
         TransferringInProgress,
-        // Occurs when the strategy is halted, and someone is trying to perform any operations
-        // (only rebalancing actually) with it.
+
+        /// Storage is not initialized (have `None` value).
+        StorageIsNotInitialized,
+
+        /// Occurs when the strategy is halted, and someone is trying to perform any operations
+        /// (only rebalancing actually) with it.
         Halted,
-        // No strategy is associated with the Vault.
+
+        /// No strategy is associated with the Vault.
         NoStrategies,
     }
 
@@ -456,7 +462,7 @@ pub mod pallet {
 
         #[transactional]
         fn rebalance() -> DispatchResult {
-            if Self::is_halted() {
+            if Self::is_halted()? {
                 return Err(Error::<T>::Halted.into());
             }
             AssociatedVaults::<T>::try_mutate(|vaults| -> DispatchResult {
@@ -498,8 +504,8 @@ pub mod pallet {
             Ok(())
         }
 
-        fn is_halted() -> bool {
-            Halted::<T>::get()
+        fn is_halted() -> Result<bool, DispatchError> {
+            Halted::<T>::get().ok_or_else(|| Error::<T>::StorageIsNotInitialized.into())
         }
 
         fn transferring_funds(
