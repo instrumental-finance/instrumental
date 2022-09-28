@@ -32,7 +32,7 @@ pub mod pallet {
     // ---------------------------------------------------------------------------------------------
 
     use codec::{Codec, FullCodec};
-    use composable_support::math::safe::SafeDiv;
+    use composable_support::math::safe::{safe_multiply_by_rational, SafeDiv, SafeSub};
     use composable_traits::{
         dex::Amm,
         vault::{CapabilityVault, FundsAvailability, StrategicVault, Vault},
@@ -45,8 +45,12 @@ pub mod pallet {
         transactional, Blake2_128Concat, PalletId, RuntimeDebug,
     };
     use frame_system::pallet_prelude::OriginFor;
-    use sp_runtime::traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
+    use sp_runtime::{
+        traits::{
+            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Convert,
+            Zero,
+        },
+        Percent,
     };
     use sp_std::fmt::Debug;
     use traits::{instrumental::State, strategy::InstrumentalProtocolStrategy};
@@ -160,6 +164,8 @@ pub mod pallet {
         /// vaults.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        type Convert: Convert<Self::Balance, u128> + Convert<u128, Self::Balance>;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -366,6 +372,24 @@ pub mod pallet {
             <Self as InstrumentalProtocolStrategy>::start()?;
             Ok(().into())
         }
+
+        #[pallet::weight(T::WeightInfo::transferring_funds())]
+        pub fn transferring_funds(
+            origin: OriginFor<T>,
+            vault_id: T::VaultId,
+            asset_id: T::AssetId,
+            new_pool_id: T::PoolId,
+            percentage_of_funds: Percent,
+        ) -> DispatchResultWithPostInfo {
+            T::ExternalOrigin::ensure_origin(origin)?;
+            <Self as InstrumentalProtocolStrategy>::transferring_funds(
+                &vault_id,
+                asset_id,
+                new_pool_id,
+                percentage_of_funds,
+            )?;
+            Ok(().into())
+        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -474,6 +498,63 @@ pub mod pallet {
         fn is_halted() -> Result<bool, DispatchError> {
             Halted::<T>::get().ok_or_else(|| Error::<T>::StorageIsNotInitialized.into())
         }
+
+        fn transferring_funds(
+            vault_id: &Self::VaultId,
+            asset_id: Self::AssetId,
+            new_pool_id: Self::PoolId,
+            percentage_of_funds: Percent,
+        ) -> DispatchResult {
+            let pool_id_and_state = Self::pools(asset_id).ok_or(Error::<T>::PoolNotFound)?;
+            let pool_id_deduce = pool_id_and_state.pool_id;
+            let strategy_vaults = T::Vault::get_strategies(vault_id)?;
+            let strategy_vault_account = strategy_vaults.last().ok_or(Error::<T>::NoStrategies)?.0;
+            let lp_token_id = T::Pablo::lp_token(pool_id_deduce)?;
+            let mut balance_of_lp_token =
+                T::Currency::balance(lp_token_id, &strategy_vault_account);
+            Pools::<T>::mutate(asset_id, |pool| {
+                *pool = Some(PoolState {
+                    pool_id: pool_id_deduce,
+                    state: State::Transferring,
+                });
+            });
+            let pertcentage_of_funds: u128 = percentage_of_funds.deconstruct().into();
+            let balance_of_lp_tokens_decimal = T::Convert::convert(balance_of_lp_token);
+            let balance_to_withdraw_per_transaction =
+                T::Convert::convert(safe_multiply_by_rational(
+                    balance_of_lp_tokens_decimal,
+                    pertcentage_of_funds,
+                    100_u128,
+                )?);
+            while balance_of_lp_token > balance_to_withdraw_per_transaction {
+                Self::do_tranferring_funds(
+                    vault_id,
+                    &strategy_vault_account,
+                    new_pool_id,
+                    pool_id_deduce,
+                    balance_to_withdraw_per_transaction,
+                )?;
+                balance_of_lp_token =
+                    balance_of_lp_token.safe_sub(&balance_to_withdraw_per_transaction)?;
+            }
+            if balance_of_lp_token > T::Balance::zero() {
+                Self::do_tranferring_funds(
+                    vault_id,
+                    &strategy_vault_account,
+                    new_pool_id,
+                    pool_id_deduce,
+                    balance_to_withdraw_per_transaction,
+                )?;
+            }
+            Pools::<T>::mutate(asset_id, |pool| {
+                *pool = Some(PoolState {
+                    pool_id: new_pool_id,
+                    state: State::Normal,
+                });
+            });
+            Self::deposit_event(Event::FundsTransfferedToNewPool { new_pool_id });
+            Ok(())
+        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -565,6 +646,19 @@ pub mod pallet {
             let balance =
                 T::Currency::balance(T::Vault::asset_id(vault_id)?, vault_strategy_account);
             <T::Vault as StrategicVault>::deposit(vault_id, vault_strategy_account, balance)
+        }
+
+        #[transactional]
+        fn do_tranferring_funds(
+            vault_id: &T::VaultId,
+            vault_account: &T::AccountId,
+            new_pool_id: T::PoolId,
+            pool_id_deduce: T::PoolId,
+            balance: T::Balance,
+        ) -> DispatchResult {
+            Self::deposit(vault_id, vault_account, pool_id_deduce, balance)?;
+            Self::withdraw(vault_id, vault_account, new_pool_id, balance)?;
+            Ok(())
         }
     }
 }
