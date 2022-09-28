@@ -342,11 +342,11 @@ pub mod pallet {
         }
 
         fn transferring_funds(
-                _vault_id: &Self::VaultId,
-                _asset_id: Self::AssetId,
-                _new_pool_id: Self::PoolId,
-                _percentage_of_funds: sp_runtime::Percent,
-            ) -> DispatchResult {
+            _vault_id: &Self::VaultId,
+            _asset_id: Self::AssetId,
+            _new_pool_id: Self::PoolId,
+            _percentage_of_funds: sp_runtime::Percent,
+        ) -> DispatchResult {
             Ok(())
         }
     }
