@@ -320,6 +320,7 @@ impl pallet_instrumental_strategy_pablo::Config for MockRuntime {
     type Balance = Balance;
     type Currency = Tokens;
     type Event = Event;
+    type Convert = ConvertInto;
     type ExternalOrigin = EnsureProportionAtLeast<AccountId, InstrumentalPabloCollective, 2, 3>;
     type MaxAssociatedVaults = MaxAssociatedVaults;
     type Pablo = Pablo;
