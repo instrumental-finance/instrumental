@@ -265,17 +265,7 @@ pub mod pallet {
             pool_id: T::PoolId,
         },
 
-<<<<<<< HEAD
         /// The event is deposited when the strategy is halted.
-||||||| parent of bb54ebb (feat(instrumental-strategy-rebalance): add `transferring_funds` fn)
-        // The event is deposited when the strategy is halted.
-=======
-        FundsTransfferedToNewPool {
-            new_pool_id: T::PoolId,
-        },
-
-        // The event is deposited when the strategy is halted.
->>>>>>> bb54ebb (feat(instrumental-strategy-rebalance): add `transferring_funds` fn)
         Halted,
 
         /// The event is deposited when the strategy is started again after halting.
@@ -299,15 +289,29 @@ pub mod pallet {
         /// TODO(belousm): only for MVP version we can assume the `pool_id` is already known and
         /// exist. We should remove it in V1.
         PoolNotFound,
+<<<<<<< HEAD
 
         /// Occurs when we try to set a new pool_id, during a transferring from or to an old one
+||||||| parent of 636700c (refactor(instrumental-strategy-pablo): add description)
+        // Occurs when we try to set a new pool_id, during a transferring from or to an old one
+=======
+        // Occurs when we try to set a new pool_id, during a transferring from or to an old one.
+>>>>>>> 636700c (refactor(instrumental-strategy-pablo): add description)
         TransferringInProgress,
+<<<<<<< HEAD
 
         /// Storage is not initialized (have `None` value).
         StorageIsNotInitialized,
 
         /// Occurs when the strategy is halted, and someone is trying to perform any operations
         /// (only rebalancing actually) with it
+||||||| parent of 636700c (refactor(instrumental-strategy-pablo): add description)
+        // Occurs when the strategy is halted, and someone is trying to perform any operations
+        // (only rebalancing actually) with it
+=======
+        // Occurs when the strategy is halted, and someone is trying to perform any operations
+        // (only rebalancing actually) with it.
+>>>>>>> 636700c (refactor(instrumental-strategy-pablo): add description)
         Halted,
         // No strategy is associated with the Vault.
         NoStrategies,
@@ -383,6 +387,9 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Makes a transfer of funds from one pool to another by batches.
+        /// 
+        /// Emits [`FundsTransfferedToNewPool`](Event::FundsTransfferedToNewPool) event when successful.
         #[pallet::weight(T::WeightInfo::transferring_funds())]
         pub fn transferring_funds(
             origin: OriginFor<T>,
