@@ -201,7 +201,7 @@ pub mod pallet {
 
     /// Stores information about whether the strategy is halted or not.
     #[pallet::storage]
-    pub type Halted<T: Config> = StorageValue<_, bool>;
+    pub type Halted<T: Config> = StorageValue<_, bool, ValueQuery>;
 
     // ---------------------------------------------------------------------------------------------
     //                                           Genesis config
@@ -264,6 +264,8 @@ pub mod pallet {
             asset_id: T::AssetId,
             pool_id: T::PoolId,
         },
+
+        FundsTransfferedToNewPool { new_pool_id: T::PoolId },
 
         /// The event is deposited when the strategy is halted.
         Halted,
@@ -452,7 +454,7 @@ pub mod pallet {
 
         #[transactional]
         fn rebalance() -> DispatchResult {
-            if Self::is_halted()? {
+            if Self::is_halted() {
                 return Err(Error::<T>::Halted.into());
             }
             AssociatedVaults::<T>::try_mutate(|vaults| -> DispatchResult {
@@ -494,8 +496,8 @@ pub mod pallet {
             Ok(())
         }
 
-        fn is_halted() -> Result<bool, DispatchError> {
-            Halted::<T>::get().ok_or_else(|| Error::<T>::StorageIsNotInitialized.into())
+        fn is_halted() -> bool {
+            Halted::<T>::get()
         }
 
         fn transferring_funds(
