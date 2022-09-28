@@ -266,10 +266,10 @@ pub mod pallet {
         // TODO(belousm): only for MVP version we can assume the `pool_id` is already known and
         // exist. We should remove it in V1.
         PoolNotFound,
-        // Occurs when we try to set a new pool_id, during a transferring from or to an old one
+        // Occurs when we try to set a new pool_id, during a transferring from or to an old one.
         TransferringInProgress,
         // Occurs when the strategy is halted, and someone is trying to perform any operations
-        // (only rebalancing actually) with it
+        // (only rebalancing actually) with it.
         Halted,
         // No strategy is associated with the Vault.
         NoStrategies,
@@ -345,6 +345,9 @@ pub mod pallet {
             Ok(().into())
         }
 
+        /// Makes a transfer of funds from one pool to another by batches.
+        /// 
+        /// Emits [`FundsTransfferedToNewPool`](Event::FundsTransfferedToNewPool) event when successful.
         #[pallet::weight(T::WeightInfo::transferring_funds())]
         pub fn transferring_funds(
             origin: OriginFor<T>,
