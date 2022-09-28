@@ -41,7 +41,16 @@ pub mod pallet {
         dispatch::{DispatchError, DispatchResult},
         pallet_prelude::*,
         storage::bounded_btree_set::BoundedBTreeSet,
+<<<<<<< HEAD
+        traits::{
+            fungibles::{Mutate, MutateHold, Transfer},
+            GenesisBuild,
+        },
+||||||| parent of d353558 (feat(instrumental-strategy-pablo): add `rebalance` function and low)
+        traits::fungibles::{Mutate, MutateHold, Transfer},
+=======
         traits::fungibles::{Inspect, Mutate, MutateHold, Transfer},
+>>>>>>> d353558 (feat(instrumental-strategy-pablo): add `rebalance` function and low)
         transactional, Blake2_128Concat, PalletId, RuntimeDebug,
     };
     use frame_system::pallet_prelude::OriginFor;
