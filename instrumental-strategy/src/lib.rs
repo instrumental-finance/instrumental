@@ -316,7 +316,7 @@ pub mod pallet {
             unimplemented!()
         }
 
-        fn is_halted() -> bool {
+        fn is_halted() -> Result<bool, DispatchError> {
             unimplemented!()
         }
 
