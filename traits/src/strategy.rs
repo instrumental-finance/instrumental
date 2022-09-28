@@ -1,6 +1,6 @@
 use codec::Codec;
 use frame_support::{sp_std::fmt::Debug, Parameter};
-use sp_runtime::{DispatchError, DispatchResult};
+use sp_runtime::{DispatchError, DispatchResult, Percent};
 
 pub trait InstrumentalProtocolStrategy {
     type AccountId: core::cmp::Ord;
@@ -23,4 +23,11 @@ pub trait InstrumentalProtocolStrategy {
     fn start() -> DispatchResult;
 
     fn is_halted() -> bool;
+
+    fn transferring_funds(
+        vault_id: &Self::VaultId,
+        asset_id: Self::AssetId,
+        new_pool_id: Self::PoolId,
+        percentage_of_funds: Percent,
+    ) -> DispatchResult;
 }
