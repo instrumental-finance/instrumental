@@ -4,7 +4,7 @@ use primitives::currency::CurrencyId;
 use sp_core::H256;
 use sp_runtime::{
     traits::{BlakeTwo256, Hash},
-    Perquintill,
+    Percent, Perquintill,
 };
 use sp_std::collections::btree_set::BTreeSet;
 use traits::strategy::InstrumentalProtocolStrategy;
@@ -412,6 +412,50 @@ mod halt {
                     Event::PabloStrategy(pallet::Event::RebalancedVault { .. })
                 )
             });
+        });
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+//                                             Transferring funds
+// -------------------------------------------------------------------------------------------------
+
+#[cfg(test)]
+mod transferring_funds {
+    use super::*;
+
+    #[test]
+    fn transferring_funds_success() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            let base_asset = CurrencyId::LAYR;
+            let quote_asset = CurrencyId::CROWD_LOAN;
+            let amount = 1_000_000_000 * CurrencyId::unit::<Balance>();
+            // Create Vault (LAYR)
+            let vault_id = create_vault(base_asset, Perquintill::from_percent(50));
+            let pool_id = create_pool(base_asset, amount, quote_asset, amount, None, None);
+            set_admin_members(vec![ALICE], 5);
+            associate_vault(vault_id);
+            // set pool_id for asset
+            set_pool_id_for_asset(base_asset, pool_id);
+            // liquidity rebalance
+            liquidity_rebalance();
+            // tranferring funds
+            let new_quote_asset = CurrencyId::USDT;
+            let new_pool_id = create_pool(base_asset, amount, new_quote_asset, amount, None, None);
+            let percentage_of_funds = Percent::from_percent(10);
+            let transferring_funds_proposal =
+                Call::PabloStrategy(crate::Call::transferring_funds {
+                    vault_id,
+                    asset_id: base_asset,
+                    new_pool_id,
+                    percentage_of_funds,
+                });
+            make_proposal(transferring_funds_proposal, ALICE, 1, 0, None);
+            assert_eq!(
+                PabloStrategy::pools(base_asset).unwrap().pool_id,
+                new_pool_id
+            );
         });
     }
 }
