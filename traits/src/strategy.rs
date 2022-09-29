@@ -31,9 +31,12 @@ pub trait InstrumentalProtocolStrategy {
     /// Returns the optimum (estimated) APY value for a provided asset id.
     fn get_apy(asset: Self::AssetId) -> Result<u128, DispatchError>;
 
+    /// Halts the strategy (freezes deposit/withdrawal of funds).
     fn halt() -> DispatchResult;
 
+    /// Resume the strategy after halting.
     fn start() -> DispatchResult;
 
+    /// Returns information about whether the strategy has been halted.
     fn is_halted() -> Result<bool, DispatchError>;
 }
