@@ -5,7 +5,7 @@
 //! implemented.
 use codec::Codec;
 use frame_support::{sp_std::fmt::Debug, Parameter};
-use sp_runtime::{DispatchError, DispatchResult, Percent};
+use sp_runtime::{DispatchError, DispatchResult};
 
 /// Provide functionality for working with the strategy.
 pub trait InstrumentalProtocolStrategy {
@@ -31,19 +31,9 @@ pub trait InstrumentalProtocolStrategy {
     /// Returns the optimum (estimated) APY value for a provided asset id.
     fn get_apy(asset: Self::AssetId) -> Result<u128, DispatchError>;
 
-    /// Store a mapping of assets's ID and a pool's ID.
-    fn set_pool_id_for_asset(asset_id: Self::AssetId, pool_id: Self::PoolId) -> DispatchResult;
-
     fn halt() -> DispatchResult;
 
     fn start() -> DispatchResult;
 
     fn is_halted() -> Result<bool, DispatchError>;
-
-    fn transferring_funds(
-        vault_id: &Self::VaultId,
-        asset_id: Self::AssetId,
-        new_pool_id: Self::PoolId,
-        percentage_of_funds: Percent,
-    ) -> DispatchResult;
 }
