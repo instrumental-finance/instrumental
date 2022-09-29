@@ -34,9 +34,12 @@ pub trait InstrumentalProtocolStrategy {
     /// Store a mapping of assets's ID and a pool's ID.
     fn set_pool_id_for_asset(asset_id: Self::AssetId, pool_id: Self::PoolId) -> DispatchResult;
 
+    /// Halts the strategy (freezes deposit/withdrawal of funds).
     fn halt() -> DispatchResult;
 
+    /// Resume the strategy after halting.
     fn start() -> DispatchResult;
 
+    /// Returns information about whether the strategy has been halted.
     fn is_halted() -> Result<bool, DispatchError>;
 }
