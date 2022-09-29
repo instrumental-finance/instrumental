@@ -307,7 +307,6 @@ pub mod pallet {
             Ok(0_u128)
         }
 
-
         #[transactional]
         fn halt() -> DispatchResult {
             for vault_id in AssociatedVaults::<T>::get()

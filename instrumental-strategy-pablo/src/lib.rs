@@ -659,31 +659,6 @@ pub mod pallet {
             Self::withdraw(vault_id, vault_account, new_pool_id, balance)?;
             Ok(())
         }
-
-        #[transactional()]
-        fn do_set_pool_id_for_asset(asset_id: T::AssetId, pool_id: T::PoolId) -> DispatchResult {
-            match Pools::<T>::try_get(asset_id) {
-                Ok(pool) => {
-                    ensure!(
-                        pool.state == State::Normal,
-                        Error::<T>::TransferringInProgress
-                    );
-                    Pools::<T>::mutate(asset_id, |_| PoolState {
-                        pool_id,
-                        state: State::Normal,
-                    });
-                }
-                Err(_) => Pools::<T>::insert(
-                    asset_id,
-                    PoolState {
-                        pool_id,
-                        state: State::Normal,
-                    },
-                ),
-            }
-            Self::deposit_event(Event::AssociatedPoolWithAsset { asset_id, pool_id });
-            Ok(())
-        }
     }
 }
 
