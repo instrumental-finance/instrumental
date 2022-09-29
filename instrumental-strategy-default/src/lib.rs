@@ -40,7 +40,7 @@ pub mod pallet {
         pallet_prelude::{DispatchResultWithPostInfo, MaybeSerializeDeserialize},
         storage::types::StorageValue,
         traits::{EnsureOrigin, GenesisBuild, Get, IsType},
-        BoundedBTreeSet, PalletId, Parameter,
+        transactional, BoundedBTreeSet, PalletId, Parameter,
     };
     use frame_system::pallet_prelude::OriginFor;
     use scale_info::TypeInfo;
@@ -278,6 +278,7 @@ pub mod pallet {
             T::PalletId::get().into_account_truncating()
         }
 
+        #[transactional]
         fn associate_vault(vault_id: &Self::VaultId) -> DispatchResult {
             AssociatedVaults::<T>::try_mutate(|vaults| {
                 let vaults = vaults.as_mut().ok_or(Error::<T>::StorageIsNotInitialized)?;
@@ -313,6 +314,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[transactional]
         fn halt() -> DispatchResult {
             for vault_id in AssociatedVaults::<T>::get()
                 .ok_or(Error::<T>::StorageIsNotInitialized)?
@@ -325,6 +327,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[transactional]
         fn start() -> DispatchResult {
             for vault_id in AssociatedVaults::<T>::get()
                 .ok_or(Error::<T>::StorageIsNotInitialized)?

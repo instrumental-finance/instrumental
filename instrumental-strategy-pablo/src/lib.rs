@@ -437,6 +437,7 @@ pub mod pallet {
             Ok(0)
         }
 
+        #[transactional]
         fn halt() -> DispatchResult {
             for vault_id in AssociatedVaults::<T>::get().iter() {
                 <T::Vault as CapabilityVault>::stop(vault_id)?;
@@ -446,6 +447,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[transactional]
         fn start() -> DispatchResult {
             for vault_id in AssociatedVaults::<T>::get().iter() {
                 <T::Vault as CapabilityVault>::start(vault_id)?;
