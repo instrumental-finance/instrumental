@@ -288,12 +288,6 @@ pub mod pallet {
             Ok(())
         }
 
-        fn set_pool_id_for_asset(_asset_id: T::AssetId, _pool_id: T::PoolId) -> DispatchResult {
-            // TODO: (belousm)
-            // The same functionality like in `instrumental-strategy-pablo`
-            Ok(())
-        }
-
         fn get_apy(asset: Self::AssetId) -> Result<u128, DispatchError> {
             // TODO: (Nevin)
             //  - cycle through all whitelisted strategies and return highest available apy
@@ -317,15 +311,6 @@ pub mod pallet {
         }
 
         fn is_halted() -> Result<bool, DispatchError> {
-            unimplemented!()
-        }
-
-        fn transferring_funds(
-            _vault_id: &Self::VaultId,
-            _asset_id: Self::AssetId,
-            _new_pool_id: Self::PoolId,
-            _percentage_of_funds: Percent,
-        ) -> DispatchResult {
             unimplemented!()
         }
     }
