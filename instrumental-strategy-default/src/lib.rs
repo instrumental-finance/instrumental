@@ -306,13 +306,6 @@ pub mod pallet {
             Ok(0_u128)
         }
 
-        fn set_pool_id_for_asset(
-            _asset_id: Self::AssetId,
-            _pool_id: Self::PoolId,
-        ) -> DispatchResult {
-            Ok(())
-        }
-
         fn halt() -> DispatchResult {
             for vault_id in AssociatedVaults::<T>::get()
                 .ok_or(Error::<T>::StorageIsNotInitialized)?
@@ -339,15 +332,6 @@ pub mod pallet {
 
         fn is_halted() -> Result<bool, DispatchError> {
             Halted::<T>::get().ok_or_else(|| Error::<T>::StorageIsNotInitialized.into())
-        }
-
-        fn transferring_funds(
-            _vault_id: &Self::VaultId,
-            _asset_id: Self::AssetId,
-            _new_pool_id: Self::PoolId,
-            _percentage_of_funds: sp_runtime::Percent,
-        ) -> DispatchResult {
-            Ok(())
         }
     }
 }
