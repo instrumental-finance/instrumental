@@ -7,7 +7,7 @@ use primitives::currency::CurrencyId;
 use sp_core::{Encode, H256};
 use sp_runtime::{
     traits::{BlakeTwo256, Hash},
-    Permill, Perquintill,
+    Percent, Permill, Perquintill,
 };
 use traits::instrumental::{Instrumental as InstrumentalTrait, InstrumentalVaultConfig};
 
@@ -175,9 +175,18 @@ where
     assert!(matcher(System::events().last().expect("events expected")));
 }
 
-pub fn set_pool_id_for_asset(asset_id: CurrencyId, pool_id: PoolId) {
-    let set_pool_id_for_asset_proposal =
-        Call::PabloStrategy(crate::Call::set_pool_id_for_asset { asset_id, pool_id });
+pub fn set_pool_id_for_asset(
+    asset_id: CurrencyId,
+    pool_id: PoolId,
+    vault_id: VaultId,
+    percentage_of_funds: Option<Percent>,
+) {
+    let set_pool_id_for_asset_proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
+        asset_id,
+        pool_id,
+        vault_id,
+        percentage_of_funds,
+    });
     make_proposal(set_pool_id_for_asset_proposal, ALICE, 1, 0, None);
 }
 
