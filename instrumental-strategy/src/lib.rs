@@ -36,11 +36,8 @@ pub mod pallet {
     use frame_support::{
         pallet_prelude::*, storage::bounded_btree_set::BoundedBTreeSet, transactional, PalletId,
     };
-    use sp_runtime::{
-        traits::{
-            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
-        },
-        Percent,
+    use sp_runtime::traits::{
+        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
     };
     use sp_std::fmt::Debug;
     use traits::{
