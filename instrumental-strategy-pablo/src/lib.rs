@@ -342,9 +342,11 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: T::AssetId,
             pool_id: T::PoolId,
+            vault_id: T::VaultId,
+            percentage_of_funds: Option<Percent>,
         ) -> DispatchResultWithPostInfo {
             T::ExternalOrigin::ensure_origin(origin)?;
-            <Self as InstrumentalProtocolStrategy>::set_pool_id_for_asset(asset_id, pool_id)?;
+            Self::do_set_pool_id_for_asset(asset_id, pool_id, &vault_id, percentage_of_funds)?;
             Ok(().into())
         }
 
@@ -377,28 +379,6 @@ pub mod pallet {
             <Self as InstrumentalProtocolStrategy>::start()?;
             Ok(().into())
         }
-
-        /// Makes a transfer of funds from one pool to another by batches.
-        ///
-        /// Emits [`FundsTransfferedToNewPool`](Event::FundsTransfferedToNewPool) event when
-        /// successful.
-        #[pallet::weight(T::WeightInfo::transferring_funds())]
-        pub fn transferring_funds(
-            origin: OriginFor<T>,
-            vault_id: T::VaultId,
-            asset_id: T::AssetId,
-            new_pool_id: T::PoolId,
-            percentage_of_funds: Percent,
-        ) -> DispatchResultWithPostInfo {
-            T::ExternalOrigin::ensure_origin(origin)?;
-            <Self as InstrumentalProtocolStrategy>::transferring_funds(
-                &vault_id,
-                asset_id,
-                new_pool_id,
-                percentage_of_funds,
-            )?;
-            Ok(().into())
-        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -413,31 +393,6 @@ pub mod pallet {
 
         fn account_id() -> Self::AccountId {
             T::PalletId::get().into_account_truncating()
-        }
-
-        #[transactional]
-        fn set_pool_id_for_asset(asset_id: T::AssetId, pool_id: T::PoolId) -> DispatchResult {
-            match Pools::<T>::try_get(asset_id) {
-                Ok(pool) => {
-                    ensure!(
-                        pool.state == State::Normal,
-                        Error::<T>::TransferringInProgress
-                    );
-                    Pools::<T>::mutate(asset_id, |_| PoolState {
-                        pool_id,
-                        state: State::Normal,
-                    });
-                }
-                Err(_) => Pools::<T>::insert(
-                    asset_id,
-                    PoolState {
-                        pool_id,
-                        state: State::Normal,
-                    },
-                ),
-            }
-            Self::deposit_event(Event::AssociatedPoolWithAsset { asset_id, pool_id });
-            Ok(())
         }
 
         #[transactional]
@@ -507,11 +462,50 @@ pub mod pallet {
         fn is_halted() -> Result<bool, DispatchError> {
             Halted::<T>::get().ok_or_else(|| Error::<T>::StorageIsNotInitialized.into())
         }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    //                                      Low Level Functionality
+    // ---------------------------------------------------------------------------------------------
+
+    impl<T: Config> Pallet<T> {
+        #[transactional]
+        fn do_set_pool_id_for_asset(
+            asset_id: T::AssetId,
+            pool_id: T::PoolId,
+            vault_id: &T::VaultId,
+            percentage_of_funds: Option<Percent>,
+        ) -> DispatchResult {
+            match Pools::<T>::try_get(asset_id) {
+                Ok(pool) => {
+                    ensure!(
+                        pool.state == State::Normal,
+                        Error::<T>::TransferringInProgress
+                    );
+                    let default_percentage_of_funds = Percent::from_percent(10);
+                    Self::transferring_funds(
+                        vault_id,
+                        asset_id,
+                        pool_id,
+                        percentage_of_funds.unwrap_or(default_percentage_of_funds),
+                    )?;
+                }
+                Err(_) => Pools::<T>::insert(
+                    asset_id,
+                    PoolState {
+                        pool_id,
+                        state: State::Normal,
+                    },
+                ),
+            }
+            Self::deposit_event(Event::AssociatedPoolWithAsset { asset_id, pool_id });
+            Ok(())
+        }
 
         fn transferring_funds(
-            vault_id: &Self::VaultId,
-            asset_id: Self::AssetId,
-            new_pool_id: Self::PoolId,
+            vault_id: &T::VaultId,
+            asset_id: T::AssetId,
+            new_pool_id: T::PoolId,
             percentage_of_funds: Percent,
         ) -> DispatchResult {
             let pool_id_and_state = Self::pools(asset_id).ok_or(Error::<T>::PoolNotFound)?;
@@ -564,13 +558,7 @@ pub mod pallet {
             Self::deposit_event(Event::FundsTransfferedToNewPool { new_pool_id });
             Ok(())
         }
-    }
 
-    // ---------------------------------------------------------------------------------------------
-    //                                      Low Level Functionality
-    // ---------------------------------------------------------------------------------------------
-
-    impl<T: Config> Pallet<T> {
         fn do_rebalance(vault_id: &T::VaultId) -> DispatchResult {
             let asset_id = T::Vault::asset_id(vault_id)?;
             let strategy_vaults = T::Vault::get_strategies(vault_id)?;
