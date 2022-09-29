@@ -19,8 +19,8 @@ sp-io.workspace = true
 sp-runtime.workspace = true
 sp-std.workspace = true
 
-composable-support = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
-composable-traits = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+composable-support.workspace = true
+composable-traits.workspace = true
 
 log.workspace = true
 serde = { workspace = true, optional = true }
@@ -28,20 +28,19 @@ serde = { workspace = true, optional = true }
 traits = { path = "../traits", default-features = false }
 
 [dev-dependencies]
-orml-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", rev = "377213f7", default-features = false }
-orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", rev = "377213f7", default-features = false }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
-sp-state-machine = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+orml-tokens.workspace = true
+orml-traits.workspace = true
+pallet-balances.workspace = true
+pallet-collective.workspace = true
+pallet-timestamp.workspace = true
 
-pallet-assets = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
-pallet-currency-factory = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
-pallet-governance-registry = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
-pallet-pablo = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
-pallet-staking-rewards = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
-pallet-vault = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
-primitives = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+pallet-assets.workspace = true
+pallet-currency-factory.workspace = true
+pallet-governance-registry.workspace = true
+pallet-pablo.workspace = true
+pallet-staking-rewards.workspace = true
+pallet-vault.workspace = true
+primitives.workspace = true
 
 hex-literal = "0.3"
 itertools = "0.10"
