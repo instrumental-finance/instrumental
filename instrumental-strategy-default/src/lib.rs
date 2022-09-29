@@ -307,13 +307,6 @@ pub mod pallet {
             Ok(0_u128)
         }
 
-        fn set_pool_id_for_asset(
-            _asset_id: Self::AssetId,
-            _pool_id: Self::PoolId,
-        ) -> DispatchResult {
-            Ok(())
-        }
-
         #[transactional]
         fn halt() -> DispatchResult {
             for vault_id in AssociatedVaults::<T>::get()

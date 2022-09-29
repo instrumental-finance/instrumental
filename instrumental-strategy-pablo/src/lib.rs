@@ -317,7 +317,7 @@ pub mod pallet {
             pool_id: T::PoolId,
         ) -> DispatchResultWithPostInfo {
             T::ExternalOrigin::ensure_origin(origin)?;
-            <Self as InstrumentalProtocolStrategy>::set_pool_id_for_asset(asset_id, pool_id)?;
+            Self::do_set_pool_id_for_asset(asset_id, pool_id)?;
             Ok(().into())
         }
 
@@ -364,31 +364,6 @@ pub mod pallet {
 
         fn account_id() -> Self::AccountId {
             T::PalletId::get().into_account_truncating()
-        }
-
-        #[transactional]
-        fn set_pool_id_for_asset(asset_id: T::AssetId, pool_id: T::PoolId) -> DispatchResult {
-            match Pools::<T>::try_get(asset_id) {
-                Ok(pool) => {
-                    ensure!(
-                        pool.state == State::Normal,
-                        Error::<T>::TransferringInProgress
-                    );
-                    Pools::<T>::mutate(asset_id, |_| PoolState {
-                        pool_id,
-                        state: State::Normal,
-                    });
-                }
-                Err(_) => Pools::<T>::insert(
-                    asset_id,
-                    PoolState {
-                        pool_id,
-                        state: State::Normal,
-                    },
-                ),
-            }
-            Self::deposit_event(Event::AssociatedPoolWithAsset { asset_id, pool_id });
-            Ok(())
         }
 
         #[transactional]
@@ -469,6 +444,31 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         fn do_rebalance(_vault_id: &T::VaultId) -> DispatchResult {
             // TODO(saruman9): reimplement
+            Ok(())
+        }
+
+        #[transactional()]
+        fn do_set_pool_id_for_asset(asset_id: T::AssetId, pool_id: T::PoolId) -> DispatchResult {
+            match Pools::<T>::try_get(asset_id) {
+                Ok(pool) => {
+                    ensure!(
+                        pool.state == State::Normal,
+                        Error::<T>::TransferringInProgress
+                    );
+                    Pools::<T>::mutate(asset_id, |_| PoolState {
+                        pool_id,
+                        state: State::Normal,
+                    });
+                }
+                Err(_) => Pools::<T>::insert(
+                    asset_id,
+                    PoolState {
+                        pool_id,
+                        state: State::Normal,
+                    },
+                ),
+            }
+            Self::deposit_event(Event::AssociatedPoolWithAsset { asset_id, pool_id });
             Ok(())
         }
     }
