@@ -42,9 +42,9 @@ pallet-staking-rewards.workspace = true
 pallet-vault.workspace = true
 primitives.workspace = true
 
-hex-literal = "0.3"
-itertools = "0.10"
-proptest = "1"
+hex-literal.workspace = true
+itertools.workspace = true
+proptest.workspace = true
 
 pallet-instrumental-strategy = { path = "../instrumental-strategy", default-features = false }
 pallet-instrumental-strategy-pablo = { path = "../instrumental-strategy-pablo", default-features = false }
