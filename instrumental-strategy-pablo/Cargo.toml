@@ -19,6 +19,7 @@ sp-io.workspace = true
 sp-runtime.workspace = true
 sp-std.workspace = true
 
+composable-support.workspace = true
 composable-traits.workspace = true
 
 log.workspace = true

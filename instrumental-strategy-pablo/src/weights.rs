@@ -10,6 +10,7 @@ pub trait WeightInfo {
     fn associate_vault() -> Weight;
     fn halt() -> Weight;
     fn start() -> Weight;
+    fn transferring_funds() -> Weight;
 }
 
 /// Weights for instrumental_strategy_pablo using the Substrate node and recommended hardware.
@@ -38,6 +39,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn start() -> Weight {
         10_000 as Weight
     }
+
+    fn transferring_funds() -> Weight {
+        10_000 as Weight
+    }
 }
 
 // For backwards compatibility and tests
@@ -63,6 +68,10 @@ impl WeightInfo for () {
     }
 
     fn start() -> Weight {
+        10_000 as Weight
+    }
+
+    fn transferring_funds() -> Weight {
         10_000 as Weight
     }
 }

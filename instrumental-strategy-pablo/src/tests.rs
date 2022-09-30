@@ -1,7 +1,11 @@
-use frame_support::{assert_noop, assert_ok};
+use composable_traits::vault::CapabilityVault;
+use frame_support::{assert_noop, assert_ok, traits::fungibles::Mutate};
 use primitives::currency::CurrencyId;
 use sp_core::H256;
-use sp_runtime::traits::{BlakeTwo256, Hash};
+use sp_runtime::{
+    traits::{BlakeTwo256, Hash},
+    Percent, Perquintill,
+};
 use sp_std::collections::btree_set::BTreeSet;
 use traits::strategy::InstrumentalProtocolStrategy;
 
@@ -9,37 +13,36 @@ use crate::{
     mock::{
         account_id::{ADMIN, ALICE, BOB},
         helpers::{
-            assert_has_event, assert_last_event, create_pool, create_vault, make_proposal,
-            set_admin_members,
+            assert_has_event, assert_last_event, associate_vault, create_pool, create_vault,
+            liquidity_rebalance, make_proposal, set_admin_members, set_pool_id_for_asset,
         },
         runtime::{
-            Balance, Call, Event, ExtBuilder, MockRuntime, PabloStrategy, System, VaultId,
-            MAX_ASSOCIATED_VAULTS,
+            Balance, Call, Event, ExtBuilder, MockRuntime, Origin, PabloStrategy, System, Tokens,
+            Vault, VaultId, MAX_ASSOCIATED_VAULTS,
         },
     },
     pallet, Error,
 };
 
-fn prepare_for_rebalancing() -> VaultId {
+fn prepare_for_rebalancing(percent_deployable: Option<Perquintill>) -> (u64, u128, CurrencyId) {
     let base_asset = CurrencyId::LAYR;
+    let quote_asset = CurrencyId::CROWD_LOAN;
+    let amount = 1_000_000_000 * CurrencyId::unit::<Balance>();
 
     // Create Vault (LAYR)
-    let vault_id = create_vault(base_asset, None);
+    let vault_id = create_vault(base_asset, percent_deployable);
 
     // Create Pool (LAYR/CROWD_LOAN)
     let pool_id = create_pool(base_asset, None, None, None, None, None);
 
-    let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
-        asset_id: base_asset,
-        pool_id,
-    });
     set_admin_members(vec![ALICE], 5);
-    make_proposal(proposal, ALICE, 1, 0, None);
+    set_pool_id_for_asset(base_asset, pool_id, vault_id, None);
 
     let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
     make_proposal(proposal, ALICE, 1, 0, None);
+    let pool_id = create_pool(base_asset, amount, quote_asset, amount, None, None);
 
-    vault_id
+    (vault_id, pool_id, base_asset)
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -139,13 +142,122 @@ mod rebalance {
     fn rebalance_emits_event() {
         ExtBuilder::default().build().execute_with(|| {
             System::set_block_number(1);
-            let vault_id = prepare_for_rebalancing();
+            let (vault_id, pool_id, base_asset) =
+                prepare_for_rebalancing(Some(Perquintill::from_percent(50)));
+
+            set_admin_members(vec![ALICE], 5);
+            set_pool_id_for_asset(base_asset, pool_id, vault_id, None);
+
+            let proposal = Call::PabloStrategy(crate::Call::associate_vault { vault_id });
+            make_proposal(proposal, ALICE, 1, 0, None);
 
             assert_ok!(PabloStrategy::rebalance());
 
             System::assert_last_event(Event::PabloStrategy(pallet::Event::RebalancedVault {
                 vault_id,
             }));
+        });
+    }
+
+    #[test]
+    fn funds_availability_withdrawable() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            let (vault_id, pool_id, base_asset) =
+                prepare_for_rebalancing(Some(Perquintill::from_percent(50)));
+            set_admin_members(vec![ALICE], 5);
+            associate_vault(vault_id);
+            // mint funds to Alice
+            assert_ok!(Tokens::mint_into(base_asset, &ALICE, 1_000_000));
+            // deposit funds to Vault
+            assert_ok!(Vault::deposit(
+                Origin::signed(ALICE),
+                vault_id,
+                100_000 as Balance
+            ));
+            // set pool_id for asset
+            set_pool_id_for_asset(base_asset, pool_id, vault_id, None);
+            // liquidity rebalance
+            liquidity_rebalance();
+            System::assert_has_event(Event::PabloStrategy(
+                pallet::Event::WithdrawFunctionalityOccuredDuringRebalance { vault_id },
+            ));
+        });
+    }
+
+    #[test]
+    fn funds_availability_depositable() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            let (vault_id, pool_id, base_asset) =
+                prepare_for_rebalancing(Some(Perquintill::from_percent(50)));
+            set_admin_members(vec![ALICE], 5);
+            associate_vault(vault_id);
+            // set pool_id for asset
+            set_pool_id_for_asset(base_asset, pool_id, vault_id, None);
+            // mint funds for Alice
+            assert_ok!(Tokens::mint_into(base_asset, &ALICE, 1_000_000_000));
+            // deposit to Vault
+            assert_ok!(Vault::deposit(Origin::signed(ALICE), vault_id, 1_000_000));
+            // first rebalance
+            liquidity_rebalance();
+            // withdraw funds from Vault
+            assert_ok!(Vault::withdraw(Origin::signed(ALICE), vault_id, 1_000));
+            // second rebalance
+            liquidity_rebalance();
+            System::assert_has_event(Event::PabloStrategy(
+                pallet::Event::DepositFunctionalityOccuredDuringRebalance { vault_id },
+            ));
+        });
+    }
+
+    #[test]
+    fn funds_availability_none() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            let (vault_id, pool_id, base_asset) =
+                prepare_for_rebalancing(Some(Perquintill::from_percent(50)));
+            set_admin_members(vec![ALICE], 5);
+            associate_vault(vault_id);
+            // set pool_id for asset
+            set_pool_id_for_asset(base_asset, pool_id, vault_id, None);
+            // mint funds for Alice
+            assert_ok!(Tokens::mint_into(base_asset, &ALICE, 1_000_000_000));
+            // deposit to Vault
+            assert_ok!(Vault::deposit(Origin::signed(ALICE), vault_id, 1_000_000));
+            // first rebalance
+            liquidity_rebalance();
+            // second rebalance
+            liquidity_rebalance();
+            System::assert_has_event(Event::PabloStrategy(
+                pallet::Event::NoneFunctionalityOccuredDuringRebalance { vault_id },
+            ));
+        });
+    }
+
+    #[test]
+    fn funds_availability_liquidate() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            let (vault_id, pool_id, base_asset) =
+                prepare_for_rebalancing(Some(Perquintill::from_percent(50)));
+            set_admin_members(vec![ALICE], 5);
+            associate_vault(vault_id);
+            // set pool_id for asset
+            set_pool_id_for_asset(base_asset, pool_id, vault_id, None);
+            // mint funds for Alice
+            assert_ok!(Tokens::mint_into(base_asset, &ALICE, 1_000_000_000));
+            // deposit to Vault
+            assert_ok!(Vault::deposit(Origin::signed(ALICE), vault_id, 1_000_000));
+            // first rebalance
+            liquidity_rebalance();
+            // stop Vault
+            assert_ok!(Vault::stop(&vault_id));
+            // second rebalance
+            liquidity_rebalance();
+            System::assert_has_event(Event::PabloStrategy(
+                pallet::Event::LiquidateFunctionalityOccuredDuringRebalance { vault_id },
+            ));
         });
     }
 }
@@ -165,13 +277,16 @@ mod set_pool_id_for_asset {
             let base_asset = CurrencyId::LAYR;
             let quote_asset = CurrencyId::CROWD_LOAN;
             let amount = 1_000_000_000 * CurrencyId::unit::<Balance>();
-
+            let vault_id = create_vault(base_asset, Perquintill::from_percent(50));
             // Create Pool (LAYR/CROWD_LOAN)
             let pool_id = create_pool(base_asset, amount, quote_asset, amount, None, None);
             set_admin_members(vec![ADMIN, ALICE, BOB], 5);
+            set_pool_id_for_asset(base_asset, pool_id, vault_id, None);
             let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
                 asset_id: base_asset,
                 pool_id,
+                vault_id,
+                percentage_of_funds: None,
             });
             make_proposal(proposal, ALICE, 2, 0, Some(&[ALICE, BOB]));
             System::assert_has_event(Event::PabloStrategy(
@@ -190,13 +305,15 @@ mod set_pool_id_for_asset {
             let base_asset = CurrencyId::LAYR;
             let quote_asset = CurrencyId::CROWD_LOAN;
             let amount = 1_000_000_000 * CurrencyId::unit::<Balance>();
-
+            let vault_id = create_vault(base_asset, Perquintill::from_percent(50));
             // Create Pool (LAYR/CROWD_LOAN)
             let pool_id = create_pool(base_asset, amount, quote_asset, amount, None, None);
             set_admin_members(vec![ADMIN, ALICE, BOB], 5);
             let proposal = Call::PabloStrategy(crate::Call::set_pool_id_for_asset {
                 asset_id: base_asset,
                 pool_id,
+                vault_id,
+                percentage_of_funds: None,
             });
             make_proposal(proposal, ALICE, 2, 0, Some(&[ALICE]));
         });
@@ -212,7 +329,7 @@ mod halt {
     use super::*;
 
     fn halting() {
-        prepare_for_rebalancing();
+        prepare_for_rebalancing(None);
 
         assert_ok!(<PabloStrategy as InstrumentalProtocolStrategy>::halt());
         System::assert_last_event(Event::PabloStrategy(pallet::Event::Halted));
@@ -272,6 +389,43 @@ mod halt {
                     Event::PabloStrategy(pallet::Event::RebalancedVault { .. })
                 )
             });
+        });
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+//                                             Transferring funds
+// -------------------------------------------------------------------------------------------------
+
+#[cfg(test)]
+mod transferring_funds {
+    use super::*;
+
+    #[test]
+    fn transferring_funds_success() {
+        ExtBuilder::default().build().execute_with(|| {
+            System::set_block_number(1);
+            let base_asset = CurrencyId::LAYR;
+            let quote_asset = CurrencyId::CROWD_LOAN;
+            let amount = 1_000_000_000 * CurrencyId::unit::<Balance>();
+            // Create Vault (LAYR)
+            let vault_id = create_vault(base_asset, Perquintill::from_percent(50));
+            let pool_id = create_pool(base_asset, amount, quote_asset, amount, None, None);
+            set_admin_members(vec![ALICE], 5);
+            associate_vault(vault_id);
+            // set pool_id for asset
+            set_pool_id_for_asset(base_asset, pool_id, vault_id, None);
+            // liquidity rebalance
+            liquidity_rebalance();
+            // tranferring funds
+            let new_quote_asset = CurrencyId::USDT;
+            let new_pool_id = create_pool(base_asset, amount, new_quote_asset, amount, None, None);
+            let percentage_of_funds = Some(Percent::from_percent(10));
+            set_pool_id_for_asset(base_asset, new_pool_id, vault_id, percentage_of_funds);
+            assert_eq!(
+                PabloStrategy::pools(base_asset).unwrap().pool_id,
+                new_pool_id
+            );
         });
     }
 }

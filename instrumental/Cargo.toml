@@ -33,7 +33,6 @@ orml-traits.workspace = true
 pallet-balances.workspace = true
 pallet-collective.workspace = true
 pallet-timestamp.workspace = true
-sp-state-machine.workspace = true
 
 pallet-assets.workspace = true
 pallet-currency-factory.workspace = true
