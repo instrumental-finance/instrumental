@@ -165,6 +165,7 @@ pub mod pallet {
         #[pallet::constant]
         type PalletId: Get<PalletId>;
 
+        /// Conversion function from [`Self::Balance`] to u128 and from u128 to [`Self::Balance`].
         type Convert: Convert<Self::Balance, u128> + Convert<u128, Self::Balance>;
     }
 
@@ -234,38 +235,53 @@ pub mod pallet {
             vault_id: T::VaultId,
         },
 
+        /// Vault successfully rebalanced.
         RebalancedVault {
             /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
+        /// During Vault rebalancing withdraw action occured.
         WithdrawFunctionalityOccuredDuringRebalance {
+            /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
+        /// During Vault rebalancing deposit action occured.
         DepositFunctionalityOccuredDuringRebalance {
+            /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
+        /// During Vault rebalancing liquidate action occured.
         LiquidateFunctionalityOccuredDuringRebalance {
+            /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
+        /// During Vault rebalancing none action occured.
         NoneFunctionalityOccuredDuringRebalance {
+            /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
+        /// Occured when it's unable to rebalance Vault.
         UnableToRebalanceVault {
             /// Vault ID of vault that can't be rebalanced.
             vault_id: T::VaultId,
         },
 
+        /// The event is deposited when pool associated with asset.
         AssociatedPoolWithAsset {
+            /// Asset ID which will be associated with pool.
             asset_id: T::AssetId,
+            /// Pool ID which will be associated with asset.
             pool_id: T::PoolId,
         },
 
+        /// The event is deposited when funds transferred from one pool to another.
         FundsTransfferedToNewPool {
+            /// Pool ID of new pool in which money transferred.
             new_pool_id: T::PoolId,
         },
 
@@ -484,6 +500,8 @@ pub mod pallet {
                         pool.state == State::Normal,
                         Error::<T>::TransferringInProgress
                     );
+                    // For MVP the default percentage of transferring funds per transaction will be
+                    // 10%. It can be changed in the future.
                     let default_percentage_of_funds = Percent::from_percent(10);
                     Self::transferring_funds(
                         vault_id,
