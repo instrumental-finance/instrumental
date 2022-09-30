@@ -1,3 +1,9 @@
+//! Default strategy.
+//!
+//! Instrumental strategy that only sends funds into a vault. It's APY is thus 0. Exist for cases
+//! when we are shutting down a strategy, updating a strategy, adding a new asset to Instrumental,
+//! etc.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(
     clippy::indexing_slicing,
@@ -11,16 +17,12 @@
     allow(
         clippy::disallowed_methods,
         clippy::disallowed_types,
+        clippy::indexing_slicing,
         clippy::panic,
         clippy::unwrap_used,
-        clippy::indexing_slicing,
     )
 )]
 
-#[cfg(test)]
-mod mock;
-#[cfg(test)]
-mod tests;
 mod weights;
 
 pub use pallet::*;
@@ -28,26 +30,33 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
     // ---------------------------------------------------------------------------------------------
-    //                                     Imports and Dependencies
+    //                                      Imports and Dependencies
     // ---------------------------------------------------------------------------------------------
 
-    use codec::{Codec, FullCodec};
-    use composable_traits::vault::StrategicVault;
+    use codec::{Codec, FullCodec, MaxEncodedLen};
+    use composable_traits::vault::{CapabilityVault, StrategicVault};
     use frame_support::{
-        pallet_prelude::*, storage::bounded_btree_set::BoundedBTreeSet, transactional, PalletId,
+        ensure,
+        pallet_prelude::{DispatchResultWithPostInfo, MaybeSerializeDeserialize},
+        storage::types::StorageValue,
+        traits::{EnsureOrigin, GenesisBuild, Get, IsType},
+        transactional, BoundedBTreeSet, PalletId, Parameter,
     };
-    use sp_runtime::traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
+    use frame_system::pallet_prelude::OriginFor;
+    use scale_info::TypeInfo;
+    use sp_runtime::{
+        traits::{
+            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
+        },
+        DispatchError, DispatchResult,
     };
     use sp_std::fmt::Debug;
-    use traits::{
-        instrumental::InstrumentalDynamicStrategy, strategy::InstrumentalProtocolStrategy,
-    };
+    use traits::strategy::InstrumentalProtocolStrategy;
 
     use crate::weights::WeightInfo;
 
     // ---------------------------------------------------------------------------------------------
-    //                                  Declaration Of The Pallet Type
+    //                                   Declaration Of The Pallet Type
     // ---------------------------------------------------------------------------------------------
 
     #[pallet::pallet]
@@ -55,15 +64,18 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     // ---------------------------------------------------------------------------------------------
-    //                                           Config Trait
+    //                                            Config Trait
     // ---------------------------------------------------------------------------------------------
 
-    // Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        #[allow(missing_docs)]
+        /// Event type emitted by this pallet. Depends on the runtime's definition of an event.
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
+        /// Some sort of check on the origin is performed by this object.
+        type ExternalOrigin: EnsureOrigin<Self::Origin>;
+
+        /// Weight information for this pallet's extrinsics.
         type WeightInfo: WeightInfo;
 
         /// The type used by the pallet for bookkeeping.
@@ -80,14 +92,14 @@ pub mod pallet {
             + Zero;
 
         /// The ID that uniquely identify an asset.
-        type AssetId: FullCodec
+        type AssetId: Default
+            + FullCodec
             + MaxEncodedLen
             + Eq
             + PartialEq
             + Copy
             + MaybeSerializeDeserialize
             + Debug
-            + Default
             + TypeInfo;
 
         /// Corresponds to the Ids used by the Vault pallet.
@@ -105,11 +117,16 @@ pub mod pallet {
 
         /// Vault used in strategy to obtain funds from, report balances and return funds to.
         type Vault: StrategicVault<
-            AssetId = Self::AssetId,
-            Balance = Self::Balance,
-            AccountId = Self::AccountId,
-            VaultId = Self::VaultId,
-        >;
+                AssetId = Self::AssetId,
+                Balance = Self::Balance,
+                AccountId = Self::AccountId,
+                VaultId = Self::VaultId,
+            > + CapabilityVault<
+                AccountId = Self::AccountId,
+                AssetId = Self::AssetId,
+                Balance = Self::Balance,
+                VaultId = Self::VaultId,
+            >;
 
         /// Type representing the unique ID of a pool.
         type PoolId: FullCodec
@@ -121,17 +138,6 @@ pub mod pallet {
             + PartialEq
             + Ord
             + Copy;
-
-        // TODO: (Nevin)
-        //  - try to make the connection to substrategies a vec of InstrumentalProtocolStrategy
-        //  - ideally something like: type WhitelistedStrategies: Get<[dyn
-        //    InstrumentalProtocolStrategy]>;
-
-        type PabloStrategy: InstrumentalProtocolStrategy<
-            AccountId = Self::AccountId,
-            AssetId = Self::AssetId,
-            VaultId = Self::VaultId,
-        >;
 
         /// The maximum number of vaults that can be associated with this strategy.
         #[pallet::constant]
@@ -146,28 +152,37 @@ pub mod pallet {
     }
 
     // ---------------------------------------------------------------------------------------------
-    //                                           Pallet Types
-    // ---------------------------------------------------------------------------------------------
-
-    // ---------------------------------------------------------------------------------------------
     //                                          Runtime Storage
     // ---------------------------------------------------------------------------------------------
 
-    // TODO: (Nevin)
-    //  - we need to store all vaults that are associated with this strategy
-
     /// The storage where we store all the vault's IDs that are associated with this strategy.
     #[pallet::storage]
-    #[pallet::getter(fn associated_vaults)]
-    #[allow(clippy::disallowed_types)]
     pub type AssociatedVaults<T: Config> =
-        StorageValue<_, BoundedBTreeSet<T::VaultId, T::MaxAssociatedVaults>, ValueQuery>;
+        StorageValue<_, BoundedBTreeSet<T::VaultId, T::MaxAssociatedVaults>>;
 
-    // TODO: (Nevin)
-    //  - we need a way of mapping a vault_id to its associated strategy
+    /// Stores information about whether the strategy is halted or not.
+    #[pallet::storage]
+    pub type Halted<T: Config> = StorageValue<_, bool>;
 
     // ---------------------------------------------------------------------------------------------
-    //                                          Runtime Events
+    //                                           Genesis config
+    // ---------------------------------------------------------------------------------------------
+
+    #[pallet::genesis_config]
+    #[derive(Default)]
+    pub struct GenesisConfig {
+        is_halted: bool,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+        fn build(&self) {
+            Halted::<T>::put(self.is_halted);
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    //                                           Runtime Events
     // ---------------------------------------------------------------------------------------------
 
     /// Pallets use events to inform users when important changes are made.
@@ -179,10 +194,16 @@ pub mod pallet {
             /// Vault ID of associated vault.
             vault_id: T::VaultId,
         },
+
+        /// The event is deposited when the strategy is halted.
+        Halted,
+
+        /// The event is deposited when the strategy is started again after halting.
+        Unhalted,
     }
 
     // ---------------------------------------------------------------------------------------------
-    //                                          Runtime Errors
+    //                                           Runtime Errors
     // ---------------------------------------------------------------------------------------------
 
     /// Errors inform users that something went wrong.
@@ -191,46 +212,55 @@ pub mod pallet {
         /// The Vault already associated with this strategy. See [`AssociatedVaults`] for details.
         VaultAlreadyAssociated,
 
+        /// Exceeds the maximum number of vaults that can be associated with this strategy. See
+        /// [`Config::MaxAssociatedVaults`] for details.
         TooManyAssociatedStrategies,
+
+        /// Storage is not initialized (have `None` value).
+        StorageIsNotInitialized,
+
+        /// Occurs when the strategy is halted, and someone is trying to perform any operations
+        /// (only rebalancing actually) with it
+        Halted,
     }
 
     // ---------------------------------------------------------------------------------------------
-    //                                               Hooks
-    // ---------------------------------------------------------------------------------------------
-
-    #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
-
-    // ---------------------------------------------------------------------------------------------
-    //                                            Extrinsics
+    //                                             Extrinsics
     // ---------------------------------------------------------------------------------------------
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {}
+    impl<T: Config> Pallet<T> {
+        /// Add [`Config::VaultId`] to [`AssociatedVaults`] storage.
+        ///
+        /// Emits [`Event::AssociatedVault`] event when successful.
+        #[pallet::weight(T::WeightInfo::associate_vault())]
+        pub fn associate_vault(
+            origin: OriginFor<T>,
+            vault_id: T::VaultId,
+        ) -> DispatchResultWithPostInfo {
+            T::ExternalOrigin::ensure_origin(origin)?;
+            <Self as InstrumentalProtocolStrategy>::associate_vault(&vault_id)?;
+            Ok(().into())
+        }
 
-    // ---------------------------------------------------------------------------------------------
-    //                                   Instrumental Dynamic Strategy
-    // ---------------------------------------------------------------------------------------------
+        /// Halt the strategy.
+        ///
+        /// Emits [`Halted`](Event::Halted) event when successful.
+        #[pallet::weight(T::WeightInfo::halt())]
+        pub fn halt(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            T::ExternalOrigin::ensure_origin(origin)?;
+            <Self as InstrumentalProtocolStrategy>::halt()?;
+            Ok(().into())
+        }
 
-    // TODO: (Nevin)
-    //  - create InstrumentalStrategy trait
-
-    impl<T: Config> InstrumentalDynamicStrategy for Pallet<T> {
-        type AccountId = T::AccountId;
-        type AssetId = T::AssetId;
-
-        // TODO: (Nevin)
-        //  - we need a way to store a vector of all strategies that are whitelisted
-
-        // fn get_strategies() -> [dyn InstrumentalProtocolStrategy<
-        // 	AssetId = T::AssetId,
-        // 	VaultId = T::VaultId
-        // >] {
-        // 	vec![&T::PabloStrategy]
-        // }
-
-        fn get_optimum_strategy_for(_asset: T::AssetId) -> Result<T::AccountId, DispatchError> {
-            Ok(T::PabloStrategy::account_id())
+        /// Continue the strategy after halting.
+        ///
+        /// Emits [`Unhalted`](Event::Unhalted) event when successful.
+        #[pallet::weight(T::WeightInfo::start())]
+        pub fn start(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+            T::ExternalOrigin::ensure_origin(origin)?;
+            <Self as InstrumentalProtocolStrategy>::start()?;
+            Ok(().into())
         }
     }
 
@@ -250,18 +280,8 @@ pub mod pallet {
 
         #[transactional]
         fn associate_vault(vault_id: &Self::VaultId) -> DispatchResult {
-            // TODO: (Nevin)
-            //  - cycle through all whitelisted strategies and associate the vault with the strategy
-            //    with the highest earning apy
-
-            // let asset_id = T::Vault::asset_id(vault_id)?;
-
-            // let optimum_strategy = Self::get_strategies().iter()
-            // 	.max_by_key(|strategy| strategy.get_apy(asset_id)?);
-
-            // optimum_strategy.associate_vault(vault_id)?;
-
             AssociatedVaults::<T>::try_mutate(|vaults| {
+                let vaults = vaults.as_mut().ok_or(Error::<T>::StorageIsNotInitialized)?;
                 ensure!(
                     !vaults.contains(vault_id),
                     Error::<T>::VaultAlreadyAssociated
@@ -270,8 +290,6 @@ pub mod pallet {
                 vaults
                     .try_insert(*vault_id)
                     .map_err(|_| Error::<T>::TooManyAssociatedStrategies)?;
-
-                T::PabloStrategy::associate_vault(vault_id)?;
 
                 Self::deposit_event(Event::AssociatedVault {
                     vault_id: *vault_id,
@@ -285,37 +303,38 @@ pub mod pallet {
             Ok(())
         }
 
-        fn get_apy(asset: Self::AssetId) -> Result<u128, DispatchError> {
-            // TODO: (Nevin)
-            //  - cycle through all whitelisted strategies and return highest available apy
-
-            // let optimum_apy = Self::get_strategies()
-            // 	.iter()
-            // 	.map(|strategy| strategy.get_apy(asset))
-            // 	.max();
-
-            // Ok(optimum_apy)
-
-            T::PabloStrategy::get_apy(asset)
+        fn get_apy(_asset: Self::AssetId) -> Result<u128, DispatchError> {
+            Ok(0_u128)
         }
 
+        #[transactional]
         fn halt() -> DispatchResult {
-            unimplemented!()
+            for vault_id in AssociatedVaults::<T>::get()
+                .ok_or(Error::<T>::StorageIsNotInitialized)?
+                .iter()
+            {
+                <T::Vault as CapabilityVault>::stop(vault_id)?;
+            }
+            Halted::<T>::put(true);
+            Self::deposit_event(Event::Halted);
+            Ok(())
         }
 
+        #[transactional]
         fn start() -> DispatchResult {
-            unimplemented!()
+            for vault_id in AssociatedVaults::<T>::get()
+                .ok_or(Error::<T>::StorageIsNotInitialized)?
+                .iter()
+            {
+                <T::Vault as CapabilityVault>::start(vault_id)?;
+            }
+            Halted::<T>::put(false);
+            Self::deposit_event(Event::Unhalted);
+            Ok(())
         }
 
         fn is_halted() -> Result<bool, DispatchError> {
-            unimplemented!()
+            Halted::<T>::get().ok_or_else(|| Error::<T>::StorageIsNotInitialized.into())
         }
     }
 }
-
-// -------------------------------------------------------------------------------------------------
-//                                            Unit Tests
-// -------------------------------------------------------------------------------------------------
-
-#[cfg(test)]
-mod unit_tests {}

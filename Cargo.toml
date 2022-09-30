@@ -3,5 +3,49 @@ members = [
   "instrumental",
   "instrumental-strategy",
   "instrumental-strategy-pablo",
+  "instrumental-strategy-default",
   "traits",
 ]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Composable Developers"]
+license = "Unlicense"
+homepage = "https://instrumental.finance"
+edition = "2021"
+
+[workspace.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[workspace.dependencies]
+codec = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+orml-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", rev = "377213f7", default-features = false }
+orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", rev = "377213f7", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+scale-info = { version = "2", default-features = false, features = ["derive"] }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-state-machine = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27", default-features = false }
+
+composable-support = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+composable-traits = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+pallet-assets = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+pallet-currency-factory = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+pallet-governance-registry = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+pallet-pablo = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+pallet-staking-rewards = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+pallet-vault = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+primitives = { git = "https://github.com/composableFi/composable", rev = "f9555b1", default-features = false }
+
+hex-literal = "0.3"
+itertools = "0.10"
+log = { version = "0.4", default-features = false }
+proptest = "1"
+serde = "1"

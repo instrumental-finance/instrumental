@@ -1,3 +1,6 @@
+//! # Instrumental traits
+//!
+//! Common traits for using with/by Instrumental's pallets.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![warn(
     clippy::indexing_slicing,

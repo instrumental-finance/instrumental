@@ -32,20 +32,25 @@ pub mod pallet {
     // ---------------------------------------------------------------------------------------------
 
     use codec::{Codec, FullCodec};
+    use composable_support::math::safe::{safe_multiply_by_rational, SafeDiv, SafeSub};
     use composable_traits::{
         dex::Amm,
-        vault::{CapabilityVault, StrategicVault},
+        vault::{CapabilityVault, FundsAvailability, StrategicVault, Vault},
     };
     use frame_support::{
         dispatch::{DispatchError, DispatchResult},
         pallet_prelude::*,
         storage::bounded_btree_set::BoundedBTreeSet,
-        traits::fungibles::{Mutate, MutateHold, Transfer},
+        traits::fungibles::{Inspect, Mutate, MutateHold, Transfer},
         transactional, Blake2_128Concat, PalletId, RuntimeDebug,
     };
     use frame_system::pallet_prelude::OriginFor;
-    use sp_runtime::traits::{
-        AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Zero,
+    use sp_runtime::{
+        traits::{
+            AccountIdConversion, AtLeast32BitUnsigned, CheckedAdd, CheckedMul, CheckedSub, Convert,
+            Zero,
+        },
+        Percent,
     };
     use sp_std::fmt::Debug;
     use traits::{instrumental::State, strategy::InstrumentalProtocolStrategy};
@@ -70,11 +75,12 @@ pub mod pallet {
         #[allow(missing_docs)]
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
+        /// Some sort of check on the origin is performed by this object.
         type ExternalOrigin: EnsureOrigin<Self::Origin>;
 
         type WeightInfo: WeightInfo;
 
-        /// The [`Balance`](Config::Balance) type used by the pallet for bookkeeping.
+        /// The type used by the pallet for bookkeeping.
         type Balance: Default
             + Parameter
             + Codec
@@ -87,8 +93,7 @@ pub mod pallet {
             + AtLeast32BitUnsigned
             + Zero;
 
-        /// The [`AssetId`](Config::AssetId) used by the pallet. Corresponds to the Ids used by the
-        /// Currency pallet.
+        /// The ID that uniquely identify an asset.
         type AssetId: FullCodec
             + MaxEncodedLen
             + Eq
@@ -99,8 +104,7 @@ pub mod pallet {
             + Default
             + TypeInfo;
 
-        /// The [`VaultId`](Config::VaultId) used by the pallet. Corresponds to the Ids used by the
-        /// Vault pallet.
+        /// Corresponds to the Ids used by the Vault pallet.
         type VaultId: FullCodec
             + MaxEncodedLen
             + Eq
@@ -113,6 +117,7 @@ pub mod pallet {
             + TypeInfo
             + Into<u128>;
 
+        /// Vault used in strategy to obtain funds from, report balances and return funds to.
         type Vault: StrategicVault<
                 AssetId = Self::AssetId,
                 Balance = Self::Balance,
@@ -125,13 +130,12 @@ pub mod pallet {
                 VaultId = Self::VaultId,
             >;
 
-        /// The [`Currency`](Config::Currency).
-        ///
         /// Currency is used for the assets managed by the vaults.
         type Currency: Transfer<Self::AccountId, Balance = Self::Balance, AssetId = Self::AssetId>
             + Mutate<Self::AccountId, Balance = Self::Balance, AssetId = Self::AssetId>
             + MutateHold<Self::AccountId, Balance = Self::Balance, AssetId = Self::AssetId>;
 
+        /// Used for interacting with Pablo pallet.
         type Pablo: Amm<
             AssetId = Self::AssetId,
             Balance = Self::Balance,
@@ -160,6 +164,9 @@ pub mod pallet {
         /// vaults.
         #[pallet::constant]
         type PalletId: Get<PalletId>;
+
+        /// Conversion function from [`Self::Balance`] to u128 and from u128 to [`Self::Balance`].
+        type Convert: Convert<Self::Balance, u128> + Convert<u128, Self::Balance>;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -178,6 +185,7 @@ pub mod pallet {
     //                                          Runtime Storage
     // ---------------------------------------------------------------------------------------------
 
+    /// The storage where we store all the vault's IDs that are associated with this strategy.
     #[pallet::storage]
     #[pallet::getter(fn associated_vaults)]
     #[allow(clippy::disallowed_types)]
@@ -192,38 +200,95 @@ pub mod pallet {
     pub type Pools<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AssetId, PoolState<T::PoolId, State>>;
 
+    /// Stores information about whether the strategy is halted or not.
     #[pallet::storage]
-    #[allow(clippy::disallowed_types)]
-    pub type Halted<T: Config> = StorageValue<_, bool, ValueQuery>;
+    pub type Halted<T: Config> = StorageValue<_, bool>;
+
+    // ---------------------------------------------------------------------------------------------
+    //                                           Genesis config
+    // ---------------------------------------------------------------------------------------------
+
+    #[pallet::genesis_config]
+    #[derive(Default)]
+    pub struct GenesisConfig {
+        pub is_halted: bool,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig {
+        fn build(&self) {
+            Halted::<T>::put(self.is_halted);
+        }
+    }
 
     // ---------------------------------------------------------------------------------------------
     //                                          Runtime Events
     // ---------------------------------------------------------------------------------------------
 
+    /// Pallets use events to inform users when important changes are made.
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
+        /// Vault successfully associated with this strategy.
         AssociatedVault {
+            /// Vault ID of associated vault.
             vault_id: T::VaultId,
         },
 
+        /// Vault successfully rebalanced.
         RebalancedVault {
+            /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
+        /// During Vault rebalancing withdraw action occurred.
+        WithdrawFunctionalityOccuredDuringRebalance {
+            /// Vault ID of rebalanced vault.
+            vault_id: T::VaultId,
+        },
+
+        /// During Vault rebalancing deposit action occurred.
+        DepositFunctionalityOccuredDuringRebalance {
+            /// Vault ID of rebalanced vault.
+            vault_id: T::VaultId,
+        },
+
+        /// During Vault rebalancing liquidate action occurred.
+        LiquidateFunctionalityOccuredDuringRebalance {
+            /// Vault ID of rebalanced vault.
+            vault_id: T::VaultId,
+        },
+
+        /// During Vault rebalancing none action occurred.
+        NoneFunctionalityOccuredDuringRebalance {
+            /// Vault ID of rebalanced vault.
+            vault_id: T::VaultId,
+        },
+
+        /// Occurred when it's unable to rebalance Vault.
         UnableToRebalanceVault {
+            /// Vault ID of vault that can't be rebalanced.
             vault_id: T::VaultId,
         },
 
+        /// The event is deposited when pool associated with asset.
         AssociatedPoolWithAsset {
+            /// Asset ID which will be associated with pool.
             asset_id: T::AssetId,
+            /// Pool ID which will be associated with asset.
             pool_id: T::PoolId,
         },
 
-        // The event is deposited when the strategy is halted.
+        /// The event is deposited when funds transferred from one pool to another.
+        FundsTransfferedToNewPool {
+            /// Pool ID of new pool in which money transferred.
+            new_pool_id: T::PoolId,
+        },
+
+        /// The event is deposited when the strategy is halted.
         Halted,
 
-        // The event is deposited when the strategy is started again after halting.
+        /// The event is deposited when the strategy is started again after halting.
         Unhalted,
     }
 
@@ -231,19 +296,32 @@ pub mod pallet {
     //                                          Runtime Errors
     // ---------------------------------------------------------------------------------------------
 
+    /// Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
+        /// The Vault already associated with this strategy. See [`AssociatedVaults`] for details.
         VaultAlreadyAssociated,
 
+        /// Exceeds the maximum number of vaults that can be associated with this strategy. See
+        /// [`Config::MaxAssociatedVaults`] for details.
         TooManyAssociatedStrategies,
-        // TODO(belousm): only for MVP version we can assume the `pool_id` is already known and
-        // exist. We should remove it in V1.
+
+        /// TODO(belousm): only for MVP version we can assume the `pool_id` is already known and
+        /// exist. We should remove it in V1.
         PoolNotFound,
-        // Occurs when we try to set a new pool_id, during a transferring from or to an old one
+
+        /// Occurs when we try to set a new pool_id, during a transferring from or to an old one.
         TransferringInProgress,
-        // Occurs when the strategy is halted, and someone is trying to perform any operations
-        // (only rebalancing actually) with it
+
+        /// Storage is not initialized (have `None` value).
+        StorageIsNotInitialized,
+
+        /// Occurs when the strategy is halted, and someone is trying to perform any operations
+        /// (only rebalancing actually) with it.
         Halted,
+
+        /// No strategy is associated with the Vault.
+        NoStrategies,
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -259,9 +337,9 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Add [`VaultId`](Config::VaultId) to [`AssociatedVaults`](AssociatedVaults) storage.
+        /// Add [`Config::VaultId`] to [`AssociatedVaults`] storage.
         ///
-        /// Emits [`AssociatedVault`](Event::AssociatedVault) event when successful.
+        /// Emits [`Event::AssociatedVault`] event when successful.
         #[pallet::weight(T::WeightInfo::associate_vault())]
         pub fn associate_vault(
             origin: OriginFor<T>,
@@ -280,9 +358,11 @@ pub mod pallet {
             origin: OriginFor<T>,
             asset_id: T::AssetId,
             pool_id: T::PoolId,
+            vault_id: T::VaultId,
+            percentage_of_funds: Option<Percent>,
         ) -> DispatchResultWithPostInfo {
             T::ExternalOrigin::ensure_origin(origin)?;
-            <Self as InstrumentalProtocolStrategy>::set_pool_id_for_asset(asset_id, pool_id)?;
+            Self::do_set_pool_id_for_asset(asset_id, pool_id, &vault_id, percentage_of_funds)?;
             Ok(().into())
         }
 
@@ -332,31 +412,6 @@ pub mod pallet {
         }
 
         #[transactional]
-        fn set_pool_id_for_asset(asset_id: T::AssetId, pool_id: T::PoolId) -> DispatchResult {
-            match Pools::<T>::try_get(asset_id) {
-                Ok(pool) => {
-                    ensure!(
-                        pool.state == State::Normal,
-                        Error::<T>::TransferringInProgress
-                    );
-                    Pools::<T>::mutate(asset_id, |_| PoolState {
-                        pool_id,
-                        state: State::Normal,
-                    });
-                }
-                Err(_) => Pools::<T>::insert(
-                    asset_id,
-                    PoolState {
-                        pool_id,
-                        state: State::Normal,
-                    },
-                ),
-            }
-            Self::deposit_event(Event::AssociatedPoolWithAsset { asset_id, pool_id });
-            Ok(())
-        }
-
-        #[transactional]
         fn associate_vault(vault_id: &Self::VaultId) -> DispatchResult {
             AssociatedVaults::<T>::try_mutate(|vaults| -> DispatchResult {
                 ensure!(
@@ -378,7 +433,7 @@ pub mod pallet {
 
         #[transactional]
         fn rebalance() -> DispatchResult {
-            if Self::is_halted() {
+            if Self::is_halted()? {
                 return Err(Error::<T>::Halted.into());
             }
             AssociatedVaults::<T>::try_mutate(|vaults| -> DispatchResult {
@@ -402,6 +457,7 @@ pub mod pallet {
             Ok(0)
         }
 
+        #[transactional]
         fn halt() -> DispatchResult {
             for vault_id in AssociatedVaults::<T>::get().iter() {
                 <T::Vault as CapabilityVault>::stop(vault_id)?;
@@ -411,6 +467,7 @@ pub mod pallet {
             Ok(())
         }
 
+        #[transactional]
         fn start() -> DispatchResult {
             for vault_id in AssociatedVaults::<T>::get().iter() {
                 <T::Vault as CapabilityVault>::start(vault_id)?;
@@ -420,8 +477,8 @@ pub mod pallet {
             Ok(())
         }
 
-        fn is_halted() -> bool {
-            Halted::<T>::get()
+        fn is_halted() -> Result<bool, DispatchError> {
+            Halted::<T>::get().ok_or_else(|| Error::<T>::StorageIsNotInitialized.into())
         }
     }
 
@@ -430,8 +487,194 @@ pub mod pallet {
     // ---------------------------------------------------------------------------------------------
 
     impl<T: Config> Pallet<T> {
-        fn do_rebalance(_vault_id: &T::VaultId) -> DispatchResult {
-            // TODO(saruman9): reimplement
+        #[transactional]
+        fn do_set_pool_id_for_asset(
+            asset_id: T::AssetId,
+            pool_id: T::PoolId,
+            vault_id: &T::VaultId,
+            percentage_of_funds: Option<Percent>,
+        ) -> DispatchResult {
+            match Pools::<T>::try_get(asset_id) {
+                Ok(pool) => {
+                    ensure!(
+                        pool.state == State::Normal,
+                        Error::<T>::TransferringInProgress
+                    );
+                    // For MVP the default percentage of transferring funds per transaction will be
+                    // 10%. It can be changed in the future.
+                    let default_percentage_of_funds = Percent::from_percent(10);
+                    Self::transferring_funds(
+                        vault_id,
+                        asset_id,
+                        pool_id,
+                        percentage_of_funds.unwrap_or(default_percentage_of_funds),
+                    )?;
+                }
+                Err(_) => Pools::<T>::insert(
+                    asset_id,
+                    PoolState {
+                        pool_id,
+                        state: State::Normal,
+                    },
+                ),
+            }
+            Self::deposit_event(Event::AssociatedPoolWithAsset { asset_id, pool_id });
+            Ok(())
+        }
+
+        fn transferring_funds(
+            vault_id: &T::VaultId,
+            asset_id: T::AssetId,
+            new_pool_id: T::PoolId,
+            percentage_of_funds: Percent,
+        ) -> DispatchResult {
+            let pool_id_and_state = Self::pools(asset_id).ok_or(Error::<T>::PoolNotFound)?;
+            let pool_id_deduce = pool_id_and_state.pool_id;
+            let strategy_vaults = T::Vault::get_strategies(vault_id)?;
+            let strategy_vault_account = strategy_vaults.last().ok_or(Error::<T>::NoStrategies)?.0;
+            let lp_token_id = T::Pablo::lp_token(pool_id_deduce)?;
+            let mut balance_of_lp_token =
+                T::Currency::balance(lp_token_id, &strategy_vault_account);
+            Pools::<T>::mutate(asset_id, |pool| {
+                *pool = Some(PoolState {
+                    pool_id: pool_id_deduce,
+                    state: State::Transferring,
+                });
+            });
+            let pertcentage_of_funds: u128 = percentage_of_funds.deconstruct().into();
+            let balance_of_lp_tokens_decimal = T::Convert::convert(balance_of_lp_token);
+            let balance_to_withdraw_per_transaction =
+                T::Convert::convert(safe_multiply_by_rational(
+                    balance_of_lp_tokens_decimal,
+                    pertcentage_of_funds,
+                    100_u128,
+                )?);
+            while balance_of_lp_token > balance_to_withdraw_per_transaction {
+                Self::do_tranferring_funds(
+                    vault_id,
+                    &strategy_vault_account,
+                    new_pool_id,
+                    pool_id_deduce,
+                    balance_to_withdraw_per_transaction,
+                )?;
+                balance_of_lp_token =
+                    balance_of_lp_token.safe_sub(&balance_to_withdraw_per_transaction)?;
+            }
+            if balance_of_lp_token > T::Balance::zero() {
+                Self::do_tranferring_funds(
+                    vault_id,
+                    &strategy_vault_account,
+                    new_pool_id,
+                    pool_id_deduce,
+                    balance_to_withdraw_per_transaction,
+                )?;
+            }
+            Pools::<T>::mutate(asset_id, |pool| {
+                *pool = Some(PoolState {
+                    pool_id: new_pool_id,
+                    state: State::Normal,
+                });
+            });
+            Self::deposit_event(Event::FundsTransfferedToNewPool { new_pool_id });
+            Ok(())
+        }
+
+        fn do_rebalance(vault_id: &T::VaultId) -> DispatchResult {
+            let asset_id = T::Vault::asset_id(vault_id)?;
+            let strategy_vaults = T::Vault::get_strategies(vault_id)?;
+            let strategy_vault_account = strategy_vaults.last().ok_or(Error::<T>::NoStrategies)?.0;
+            let pool_id_and_state = Self::pools(asset_id).ok_or(Error::<T>::PoolNotFound)?;
+            let pool_id = pool_id_and_state.pool_id;
+            match T::Vault::available_funds(vault_id, &Self::account_id())? {
+                FundsAvailability::Withdrawable(balance) => {
+                    Self::withdraw(vault_id, &strategy_vault_account, pool_id, balance)?;
+                    Self::deposit_event(Event::WithdrawFunctionalityOccuredDuringRebalance {
+                        vault_id: *vault_id,
+                    });
+                }
+                FundsAvailability::Depositable(balance) => {
+                    Self::deposit(vault_id, &strategy_vault_account, pool_id, balance)?;
+                    Self::deposit_event(Event::DepositFunctionalityOccuredDuringRebalance {
+                        vault_id: *vault_id,
+                    });
+                }
+                FundsAvailability::MustLiquidate => {
+                    Self::liquidate(vault_id, &strategy_vault_account, pool_id)?;
+                    Self::deposit_event(Event::LiquidateFunctionalityOccuredDuringRebalance {
+                        vault_id: *vault_id,
+                    });
+                }
+                FundsAvailability::None => {
+                    Self::deposit_event(Event::NoneFunctionalityOccuredDuringRebalance {
+                        vault_id: *vault_id,
+                    });
+                }
+            };
+            Ok(())
+        }
+
+        fn withdraw(
+            vault_id: &T::VaultId,
+            vault_strategy_account: &T::AccountId,
+            pool_id: T::PoolId,
+            balance: T::Balance,
+        ) -> DispatchResult {
+            <T::Vault as StrategicVault>::withdraw(vault_id, vault_strategy_account, balance)?;
+            T::Pablo::add_liquidity(
+                vault_strategy_account,
+                pool_id,
+                balance,
+                T::Balance::zero(),
+                T::Balance::zero(),
+                true,
+            )
+        }
+
+        fn deposit(
+            vault_id: &T::VaultId,
+            vault_strategy_account: &T::AccountId,
+            pool_id: T::PoolId,
+            balance: T::Balance,
+        ) -> DispatchResult {
+            let lp_price = T::Pablo::get_price_of_lp_token(pool_id)?;
+            let lp_redeem = balance.safe_div(&lp_price)?;
+            T::Pablo::remove_liquidity_single_asset(
+                vault_strategy_account,
+                pool_id,
+                lp_redeem,
+                T::Balance::zero(),
+            )?;
+            <T::Vault as StrategicVault>::deposit(vault_id, vault_strategy_account, balance)
+        }
+
+        fn liquidate(
+            vault_id: &T::VaultId,
+            vault_strategy_account: &T::AccountId,
+            pool_id: T::PoolId,
+        ) -> DispatchResult {
+            let lp_token_id = T::Pablo::lp_token(pool_id)?;
+            let balance_of_lp_token = T::Currency::balance(lp_token_id, vault_strategy_account);
+            T::Pablo::remove_liquidity_single_asset(
+                vault_strategy_account,
+                pool_id,
+                balance_of_lp_token,
+                T::Balance::zero(),
+            )?;
+            let balance =
+                T::Currency::balance(T::Vault::asset_id(vault_id)?, vault_strategy_account);
+            <T::Vault as StrategicVault>::deposit(vault_id, vault_strategy_account, balance)
+        }
+
+        #[transactional]
+        fn do_tranferring_funds(
+            vault_id: &T::VaultId,
+            vault_account: &T::AccountId,
+            new_pool_id: T::PoolId,
+            pool_id_deduce: T::PoolId,
+            balance: T::Balance,
+        ) -> DispatchResult {
+            Self::deposit(vault_id, vault_account, pool_id_deduce, balance)?;
+            Self::withdraw(vault_id, vault_account, new_pool_id, balance)?;
             Ok(())
         }
     }

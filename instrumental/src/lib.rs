@@ -135,7 +135,7 @@ pub mod pallet {
 
         type WeightInfo: WeightInfo;
 
-        /// The [`Balance`](Config::Balance) type used by the pallet for bookkeeping.
+        /// The type used by the pallet for bookkeeping.
         type Balance: Default
             + Parameter
             + Codec
@@ -148,8 +148,7 @@ pub mod pallet {
             + AtLeast32BitUnsigned
             + Zero;
 
-        /// The [`AssetId`](Config::AssetId) used by the pallet. Corresponds to the Ids used by the
-        /// Currency pallet.
+        /// The ID that uniquely identify an asset.
         type AssetId: FullCodec
             + MaxEncodedLen
             + Eq
@@ -160,10 +159,10 @@ pub mod pallet {
             + Default
             + TypeInfo;
 
-        /// The [`VaultId`](Config::VaultId) used by the pallet. Corresponds to the Ids used by the
-        /// Vault pallet.
+        /// Corresponds to the Ids used by the Vault pallet.
         type VaultId: Clone + Codec + MaxEncodedLen + Debug + PartialEq + Default + Parameter;
 
+        /// Vault used in strategy to obtain funds from, report balances and return funds to.
         type Vault: StrategicVault<
             AssetId = Self::AssetId,
             Balance = Self::Balance,
@@ -210,11 +209,13 @@ pub mod pallet {
     //                                          Runtime Events
     // ---------------------------------------------------------------------------------------------
 
+    /// Pallets use events to inform users when important changes are made.
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Emitted after a successful call to the [`create`](Pallet::create) extrinsic.
         Created {
+            /// Vault ID of created vault.
             vault_id: T::VaultId,
             config: InstrumentalVaultConfigFor<T>,
         },
@@ -238,6 +239,7 @@ pub mod pallet {
     //                                          Runtime Errors
     // ---------------------------------------------------------------------------------------------
 
+    /// Errors inform users that something went wrong.
     #[pallet::error]
     pub enum Error<T> {
         /// This error is thrown when a vault is trying to be created for an asset that already has

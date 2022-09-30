@@ -318,6 +318,7 @@ parameter_types! {
 impl pallet_instrumental_strategy_pablo::Config for MockRuntime {
     type AssetId = CurrencyId;
     type Balance = Balance;
+    type Convert = ConvertInto;
     type Currency = Tokens;
     type Event = Event;
     type ExternalOrigin = EnsureProportionAtLeast<AccountId, InstrumentalPabloCollective, 2, 3>;
@@ -417,6 +418,12 @@ impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
         let mut storage = frame_system::GenesisConfig::default()
             .build_storage::<MockRuntime>()
+            .unwrap();
+
+        <pallet_instrumental_strategy_pablo::GenesisConfig as GenesisBuild<MockRuntime>>
+            ::assimilate_storage(
+                &pallet_instrumental_strategy_pablo::GenesisConfig::default(),
+                &mut storage)
             .unwrap();
 
         pallet_balances::GenesisConfig::<MockRuntime> {
