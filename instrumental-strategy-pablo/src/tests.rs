@@ -417,7 +417,7 @@ mod transferring_funds {
             set_pool_id_for_asset(base_asset, pool_id, vault_id, None);
             // liquidity rebalance
             liquidity_rebalance();
-            // tranferring funds
+            // transferring funds
             let new_quote_asset = CurrencyId::USDT;
             let new_pool_id = create_pool(base_asset, amount, new_quote_asset, amount, None, None);
             let percentage_of_funds = Some(Percent::from_percent(10));

@@ -241,31 +241,31 @@ pub mod pallet {
             vault_id: T::VaultId,
         },
 
-        /// During Vault rebalancing withdraw action occured.
+        /// During Vault rebalancing withdraw action occurred.
         WithdrawFunctionalityOccuredDuringRebalance {
             /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
-        /// During Vault rebalancing deposit action occured.
+        /// During Vault rebalancing deposit action occurred.
         DepositFunctionalityOccuredDuringRebalance {
             /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
-        /// During Vault rebalancing liquidate action occured.
+        /// During Vault rebalancing liquidate action occurred.
         LiquidateFunctionalityOccuredDuringRebalance {
             /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
-        /// During Vault rebalancing none action occured.
+        /// During Vault rebalancing none action occurred.
         NoneFunctionalityOccuredDuringRebalance {
             /// Vault ID of rebalanced vault.
             vault_id: T::VaultId,
         },
 
-        /// Occured when it's unable to rebalance Vault.
+        /// Occurred when it's unable to rebalance Vault.
         UnableToRebalanceVault {
             /// Vault ID of vault that can't be rebalanced.
             vault_id: T::VaultId,
